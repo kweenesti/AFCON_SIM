@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -44,7 +45,7 @@ export default function AdminPage() {
 
    // Fetch matches for the current tournament
    const matchesQuery = useMemoFirebase(
-    () => (tournament ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id)) : null),
+    () => (tournament ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
     [firestore, tournament]
   );
   const { data: matches, isLoading: areMatchesLoading } = useCollection<Match>(matchesQuery);
@@ -235,16 +236,18 @@ export default function AdminPage() {
               <CardContent>
                 <ul className="space-y-2">
                   {matches.map(match => (
-                    <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg">
-                       <span className="font-medium">{match.homeTeamName}</span>
-                        {match.played ? (
-                          <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
-                        ) : (
-                          <span className="text-muted-foreground">vs</span>
-                        )}
-                       <span className="font-medium">{match.awayTeamName}</span>
+                    <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
+                       <Link href={`/match/${match.id}`} className="flex-1 flex justify-between items-center">
+                         <span className="font-medium">{match.homeTeamName}</span>
+                          {match.played ? (
+                            <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
+                          ) : (
+                            <span className="text-muted-foreground">vs</span>
+                          )}
+                         <span className="font-medium">{match.awayTeamName}</span>
+                       </Link>
                        {!match.played && (
-                         <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending}>
+                         <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending} className="ml-4">
                            <Zap className="mr-2 h-4 w-4" />
                            {isPending ? 'Simulating...' : 'Simulate'}
                          </Button>

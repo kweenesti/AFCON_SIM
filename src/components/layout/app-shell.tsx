@@ -7,8 +7,7 @@ import {
   FilePlus,
   Home,
   LogOut,
-  PanelLeft,
-  CalendarCog,
+  Swords,
   UserCog,
 } from 'lucide-react';
 
@@ -46,13 +45,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     isRegistered && user?.profile?.role === 'admin'
       ? [
           { href: '/dashboard', label: 'Dashboard', icon: Home },
-          { href: '/schedule', label: 'Scheduler', icon: CalendarCog },
+          { href: '/matches', label: 'Matches', icon: Swords },
           { href: '/admin', label: 'Admin', icon: UserCog },
         ]
       : isRegistered
       ? [
           { href: '/dashboard', label: 'Dashboard', icon: Home },
-          { href: '/schedule', label: 'Scheduler', icon: CalendarCog },
+          { href: '/matches', label: 'Matches', icon: Swords },
         ]
       : [{ href: '/', label: 'Register', icon: FilePlus }];
 
