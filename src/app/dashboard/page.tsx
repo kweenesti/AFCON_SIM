@@ -1,116 +1,196 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Federation, Player } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { generatePlayers, computeTeamRating } from '@/lib/generate-players';
 import { SquadTable } from '@/components/team/squad-table';
-import { Flag, User, Shield } from 'lucide-react';
-import { useAuth, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import {
+  useAuth,
+  useDoc,
+  useCollection,
+  useMemoFirebase,
+  useFirestore,
+  setDocumentNonBlocking,
+  addDocumentNonBlocking,
+  useUser,
+} from '@/firebase';
+import { doc, collection, writeBatch } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Sparkles, Save, ShieldCheck } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+
+  // State for form inputs
+  const [managerName, setManagerName] = useState('');
+  
+  // State for generated squad
+  const [squad, setSquad] = useState<Player[]>([]);
+  const [teamRating, setTeamRating] = useState<number | null>(null);
 
   const federationRef = useMemoFirebase(
-    () => (auth.currentUser ? doc(firestore, 'federations', auth.currentUser.uid) : null),
-    [firestore, auth.currentUser]
+    () => (user ? doc(firestore, 'federations', user.uid) : null),
+    [firestore, user]
   );
-  const { data: team, isLoading: isTeamLoading } = useDoc<Federation>(federationRef);
+  const { data: federation, isLoading: isFederationLoading } = useDoc<Federation>(federationRef);
 
   const playersRef = useMemoFirebase(
-    () => (auth.currentUser ? collection(firestore, 'federations', auth.currentUser.uid, 'players') : null),
-    [firestore, auth.currentUser]
+    () => (user ? collection(firestore, 'federations', user.uid, 'players') : null),
+    [firestore, user]
   );
-  const { data: squad, isLoading: isSquadLoading } = useCollection<Player>(playersRef);
-
+  const { data: existingSquad, isLoading: isSquadLoading } = useCollection<Player>(playersRef);
+  
+  // Populate form and squad with existing data on load
+  useEffect(() => {
+    if (federation) {
+      setManagerName(federation.managerName);
+    }
+    if(existingSquad) {
+      setSquad(existingSquad);
+    }
+  }, [federation, existingSquad]);
 
   useEffect(() => {
-    if (!auth.currentUser && !isTeamLoading) {
+    if (!isUserLoading && !user) {
       router.replace('/');
     }
-  }, [auth.currentUser, isTeamLoading, router]);
+  }, [user, isUserLoading, router]);
 
-  const isLoading = isTeamLoading || isSquadLoading;
+  const handleGenerateSquad = () => {
+    const newSquad = generatePlayers();
+    setSquad(newSquad);
+    const rating = computeTeamRating(newSquad);
+    setTeamRating(rating);
+    toast({
+      title: 'Squad Generated!',
+      description: `New team rating: ${rating}`,
+    });
+  };
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="container mx-auto p-4 space-y-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-          </div>
-          <Skeleton className="h-96" />
-        </div>
-      );
+  const handleSaveChanges = async () => {
+    if (!user || !federation) {
+      toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
+      return;
     }
-  
-    if (!team) {
-      return null;
+
+    try {
+      // 1. Update manager name in federation document
+      const newFederationData = { ...federation, managerName };
+      setDocumentNonBlocking(federationRef!, newFederationData, { merge: true });
+
+      // 2. Overwrite the players subcollection with the new squad
+      const batch = writeBatch(firestore);
+      const playersCollectionRef = collection(firestore, 'federations', user.uid, 'players');
+
+      // First, delete existing players
+      (existingSquad || []).forEach(player => {
+        const playerDocRef = doc(playersCollectionRef, player.id);
+        batch.delete(playerDocRef);
+      });
+      
+      // Then, add the new players
+      squad.forEach(player => {
+        // Since players from generatePlayers have a client-side UUID, we can use it
+        const playerDocRef = doc(playersCollectionRef, player.id);
+        batch.set(playerDocRef, { ...player, federationId: user.uid });
+      });
+
+      await batch.commit();
+
+      toast({
+        title: 'Success!',
+        description: 'Your team information has been saved.',
+      });
+
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: 'Save Failed',
+        description: error.message || 'Could not save your changes.',
+        variant: 'destructive',
+      });
     }
+  };
   
+  const isLoading = isUserLoading || isFederationLoading || isSquadLoading;
+  
+  if (isLoading) {
     return (
+       <AppShell>
+         <div className="container mx-auto p-4 space-y-8">
+            <Skeleton className="h-12 w-1/3" />
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
+       </AppShell>
+    );
+  }
+
+  if (!user || !federation) return null;
+   
+  return (
+    <AppShell>
       <main className="container mx-auto p-4 md:p-8">
         <div className="space-y-8">
-          <h1 className="font-headline text-3xl font-bold md:text-4xl">
-            {team.countryName} National Team Dashboard
+           <h1 className="font-headline text-3xl font-bold md:text-4xl">
+            {federation.countryName} National Team Dashboard
           </h1>
-  
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Country</CardTitle>
-                <Flag className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{team.countryName}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Manager</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{team.managerName}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Federation Rep.
-                </CardTitle>
-                <Shield className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{team.representativeName}</div>
-              </CardContent>
-            </Card>
-          </div>
-  
+
           <Card>
             <CardHeader>
-              <CardTitle>Official Squad List</CardTitle>
+              <CardTitle>Team Management</CardTitle>
+              <CardDescription>Update your manager and generate a new squad for the tournament.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="manager">Manager Name</Label>
+                  <Input 
+                    id="manager" 
+                    placeholder="e.g., José Mourinho"
+                    value={managerName}
+                    onChange={e => setManagerName(e.target.value)}
+                  />
+                </div>
+                <Button onClick={handleGenerateSquad}>
+                  <Sparkles className="mr-2" />
+                  Generate New Squad
+                </Button>
+              </div>
+               <div className="flex justify-end gap-2">
+                <Button onClick={handleSaveChanges} variant="accent">
+                  <Save className="mr-2" />
+                  Save Changes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck />
+                Official Squad List
+                {teamRating && <span className="text-lg font-medium text-muted-foreground">(Rating: {teamRating})</span>}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <SquadTable squad={squad || []} />
+              <SquadTable squad={squad} />
             </CardContent>
           </Card>
         </div>
       </main>
-    );
-  }
-
-  return (
-    <AppShell>
-      {renderContent()}
     </AppShell>
-  )
+  );
 }
