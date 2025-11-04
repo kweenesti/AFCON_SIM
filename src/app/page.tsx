@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { useUser } from '@/firebase';
+import { AppShell } from '@/components/layout/app-shell';
 
 export default function Home() {
   const router = useRouter();
@@ -33,47 +34,49 @@ export default function Home() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
-        <div className="md:col-span-5">
-          <Card className="overflow-hidden">
-            <div className="relative h-48 w-full md:h-64">
-              {heroImage && (
-                <Image
-                  src={heroImage.imageUrl}
-                  alt={heroImage.description}
-                  data-ai-hint={heroImage.imageHint}
-                  fill
-                  className="object-cover"
-                />
-              )}
-              <div className="absolute inset-0 bg-black/50" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-primary-foreground">
-                <h1 className="font-headline text-3xl font-bold md:text-5xl">
-                  African Nations Tournament Simulator
-                </h1>
-                <p className="mt-2 max-w-2xl text-lg text-primary-foreground/80">
-                  The future of African football is here. Register your
-                  federation and build your dream team.
-                </p>
+    <AppShell>
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
+          <div className="md:col-span-5">
+            <Card className="overflow-hidden">
+              <div className="relative h-48 w-full md:h-64">
+                {heroImage && (
+                  <Image
+                    src={heroImage.imageUrl}
+                    alt={heroImage.description}
+                    data-ai-hint={heroImage.imageHint}
+                    fill
+                    className="object-cover"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-primary-foreground">
+                  <h1 className="font-headline text-3xl font-bold md:text-5xl">
+                    African Nations Tournament Simulator
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-lg text-primary-foreground/80">
+                    The future of African football is here. Register your
+                    federation and build your dream team.
+                  </p>
+                </div>
               </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
 
-        <div className="md:col-span-5">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">
-                Register Your Federation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RegistrationForm />
-            </CardContent>
-          </Card>
+          <div className="md:col-span-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline text-2xl">
+                  Register Your Federation
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RegistrationForm />
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </AppShell>
   );
 }
