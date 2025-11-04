@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-stadium",
+      "description": "A vibrant soccer stadium under the lights.",
+      "imageUrl": "https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxzb2NjZXIlMjBzdGFkaXVtfGVufDB8fHx8MTc2MjIxODI4Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "soccer stadium"
+    }
+  ]
 }
