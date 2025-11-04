@@ -11,13 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { generatePlayers, computeTeamRating } from '@/lib/generate-players';
 import { SquadTable } from '@/components/team/squad-table';
 import {
-  useAuth,
   useDoc,
   useCollection,
   useMemoFirebase,
   useFirestore,
   setDocumentNonBlocking,
-  addDocumentNonBlocking,
   useUser,
 } from '@/firebase';
 import { doc, collection, writeBatch } from 'firebase/firestore';
@@ -27,7 +25,6 @@ import { Sparkles, Save, ShieldCheck } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
@@ -68,6 +65,7 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
+    // This function must only run on the client, which it does because it's an event handler.
     const newSquad = generatePlayers();
     setSquad(newSquad);
     const rating = computeTeamRating(newSquad);
@@ -79,7 +77,7 @@ export default function DashboardPage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!user || !federation) {
+    if (!user || !federation || !federationRef) {
       toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
       return;
     }
@@ -87,7 +85,7 @@ export default function DashboardPage() {
     try {
       // 1. Update manager name in federation document
       const newFederationData = { ...federation, managerName };
-      setDocumentNonBlocking(federationRef!, newFederationData, { merge: true });
+      setDocumentNonBlocking(federationRef, newFederationData, { merge: true });
 
       // 2. Overwrite the players subcollection with the new squad
       const batch = writeBatch(firestore);
@@ -169,7 +167,7 @@ export default function DashboardPage() {
                 </Button>
               </div>
                <div className="flex justify-end gap-2">
-                <Button onClick={handleSaveChanges} variant="accent">
+                <Button onClick={handleSaveChanges}>
                   <Save className="mr-2" />
                   Save Changes
                 </Button>
