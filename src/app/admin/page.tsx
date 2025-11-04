@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where, getDocs } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { List, PlayCircle, Swords, Zap } from 'lucide-react';
@@ -129,6 +129,55 @@ export default function AdminPage() {
     });
   };
   
+    const generateSemiFinals = async () => {
+        if (!matches || !tournament || !firestore) return;
+        const qfMatches = matches.filter(m => m.stage === 'quarter-finals');
+        const playedQf = qfMatches.filter(m => m.played);
+
+        if (playedQf.length !== 4) {
+            setMessage("All 4 quarter-final matches must be played first.");
+            toast({ title: "Error", description: "All 4 quarter-final matches must be played first.", variant: "destructive" });
+            return;
+        }
+
+        const winners = playedQf.map(m => {
+            const winnerId = m.winnerId;
+            const winnerFederation = federations?.find(f => f.id === winnerId);
+            return winnerFederation;
+        }).filter(Boolean) as Federation[];
+
+        if (winners.length !== 4) {
+            setMessage("Could not determine 4 unique winners.");
+            return;
+        }
+
+        const shuffled = [...winners].sort(() => Math.random() - 0.5);
+        const pairs = [shuffled.slice(0, 2), shuffled.slice(2, 4)];
+
+        const batch = writeBatch(firestore);
+        const matchesCollection = collection(firestore, "matches");
+
+        pairs.forEach(pair => {
+            const matchDocRef = doc(matchesCollection);
+            batch.set(matchDocRef, {
+                id: matchDocRef.id,
+                tournamentId: tournament.id,
+                stage: "semi-finals",
+                homeTeamId: pair[0].id,
+                awayTeamId: pair[1].id,
+                homeTeamName: pair[0].countryName,
+                awayTeamName: pair[1].countryName,
+                played: false,
+                createdAt: serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        setMessage("Semi-final matches generated!");
+        toast({ title: "Semi-Finals Generated!", description: "The semi-final fixtures are now set." });
+    };
+
+
   const handleSimulateMatch = (match: Match) => {
     startTransition(async () => {
       const result = await simulateMatchAction(match.id, match.homeTeamId, match.awayTeamId);
@@ -169,7 +218,12 @@ export default function AdminPage() {
 
   const hasTournamentStarted = !!tournament;
   const canStartTournament = (federations?.length ?? 0) === 8 && !hasTournamentStarted;
-  const canGenerateMatches = hasTournamentStarted && (matches?.length ?? 0) === 0;
+  
+  const quarterFinals = matches?.filter(m => m.stage === 'quarter-finals') || [];
+  const semiFinals = matches?.filter(m => m.stage === 'semi-finals') || [];
+  
+  const canGenerateMatches = hasTournamentStarted && quarterFinals.length === 0;
+  const canGenerateSemis = quarterFinals.length === 4 && quarterFinals.every(m => m.played) && semiFinals.length === 0;
 
   return (
     <AppShell>
@@ -224,6 +278,11 @@ export default function AdminPage() {
                 <Swords className="mr-2" />
                 Generate Quarter-Finals
               </Button>
+              <Button onClick={generateSemiFinals} disabled={!canGenerateSemis} variant="secondary">
+                <Swords className="mr-2" />
+                Generate Semi-Finals
+              </Button>
+
               {message && <p className={`text-sm ${message.includes('Need') ? 'text-destructive' : 'text-primary'}`}>{message}</p>}
             </CardContent>
           </Card>

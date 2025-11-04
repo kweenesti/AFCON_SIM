@@ -69,6 +69,7 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
         await updateDoc(matchRef, {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
+            winnerId: result.winnerId,
             played: true
         });
 

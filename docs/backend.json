@@ -173,6 +173,7 @@
         "awayTeamName": { "type": "string" },
         "homeScore": { "type": "number" },
         "awayScore": { "type": "number" },
+        "winnerId": { "type": "string" },
         "played": { "type": "boolean", "default": false },
         "createdAt": { "type": "string", "format": "date-time" }
       },

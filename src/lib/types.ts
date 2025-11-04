@@ -52,6 +52,7 @@ export interface Match {
     awayTeamName: string;
     homeScore?: number;
     awayScore?: number;
+    winnerId?: string;
     played: boolean;
     createdAt: any;
 }
