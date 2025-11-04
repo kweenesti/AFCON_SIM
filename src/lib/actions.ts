@@ -50,6 +50,7 @@ export type SchedulerState = {
     existingSchedules?: string[];
     stadiumAvailabilities?: string[];
     weatherForecasts?: string[];
+    root?: string[];
   };
 };
 
