@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import {
   CalendarIcon,
   Cloud,
@@ -35,7 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 export function SchedulerForm() {
   const initialState: SchedulerState = { message: '', errors: {} };
-  const [state, dispatch] = useFormState(generateSchedule, initialState);
+  const [state, dispatch] = useActionState(generateSchedule, initialState);
 
   return (
     <form action={dispatch} className="space-y-8">
