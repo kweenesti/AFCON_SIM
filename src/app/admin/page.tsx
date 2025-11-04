@@ -185,6 +185,54 @@ export default function AdminPage() {
         toast({ title: "Semi-Finals Generated!", description: "The semi-final fixtures are now set." });
     };
 
+    const generateFinal = async () => {
+        if (!matches || !tournament || !firestore || !federations) return;
+    
+        const sfMatches = matches.filter(m => m.stage === 'semi-finals');
+        if (sfMatches.length !== 2) {
+            setMessage("2 semi-final matches must be generated first.");
+            toast({ title: "Error", description: "2 semi-final matches must be generated first.", variant: "destructive" });
+            return;
+        }
+
+        const playedSf = sfMatches.filter(m => m.played);
+        if (playedSf.length !== 2) {
+            setMessage("All 2 semi-final matches must be played first.");
+            toast({ title: "Error", description: "All 2 semi-final matches must be played first.", variant: "destructive" });
+            return;
+        }
+    
+        const winners = playedSf.map(m => {
+            return federations.find(f => f.id === m.winnerId);
+        }).filter((f): f is Federation => !!f);
+    
+        if (winners.length !== 2) {
+            setMessage("Could not determine 2 unique winners from the semi-finals.");
+            toast({ title: "Error", description: "Could not determine 2 unique winners.", variant: "destructive" });
+            return;
+        }
+    
+        const batch = writeBatch(firestore);
+        const matchesCollection = collection(firestore, "matches");
+        const matchDocRef = doc(matchesCollection);
+
+        batch.set(matchDocRef, {
+            id: matchDocRef.id,
+            tournamentId: tournament.id,
+            stage: "final",
+            homeTeamId: winners[0].id,
+            awayTeamId: winners[1].id,
+            homeTeamName: winners[0].countryName,
+            awayTeamName: winners[1].countryName,
+            played: false,
+            createdAt: serverTimestamp()
+        });
+    
+        await batch.commit();
+        setMessage("The Final is set!");
+        toast({ title: "Final Generated!", description: "The final match is now set." });
+    };
+
 
   const handleSimulateMatch = (match: Match) => {
     startTransition(async () => {
@@ -229,9 +277,11 @@ export default function AdminPage() {
   
   const quarterFinals = matches?.filter(m => m.stage === 'quarter-finals') || [];
   const semiFinals = matches?.filter(m => m.stage === 'semi-finals') || [];
+  const final = matches?.filter(m => m.stage === 'final') || [];
   
   const canGenerateMatches = hasTournamentStarted && quarterFinals.length === 0;
   const canGenerateSemis = quarterFinals.length === 4 && quarterFinals.every(m => m.played) && semiFinals.length === 0;
+  const canGenerateFinal = semiFinals.length === 2 && semiFinals.every(m => m.played) && final.length === 0;
 
   return (
     <AppShell>
@@ -289,6 +339,10 @@ export default function AdminPage() {
               <Button onClick={generateSemiFinals} disabled={!canGenerateSemis} variant="secondary">
                 <Swords className="mr-2" />
                 Generate Semi-Finals
+              </Button>
+              <Button onClick={generateFinal} disabled={!canGenerateFinal} variant="secondary">
+                <Swords className="mr-2" />
+                Generate Final
               </Button>
 
               {message && <p className={`text-sm ${message.includes('Need') ? 'text-destructive' : 'text-primary'}`}>{message}</p>}
