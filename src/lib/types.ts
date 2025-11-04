@@ -26,3 +26,10 @@ export interface Federation {
 export interface Team extends Federation {
   squad: Player[];
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName?: string;
+  role: 'admin' | 'federation';
+}

@@ -4,11 +4,13 @@
  *
  * Data Structure:
  * - /countries/{countryId}: Publicly accessible data about countries.
+ * - /users/{userId}: User profile data, readable only by the owning user.
  * - /federations/{federationId}: Federation data, accessible only to the authenticated user with the matching federationId.
  * - /federations/{federationId}/players/{playerId}: Player data nested under federations, accessible only to the owning federation.
  *
  * Key Security Decisions:
  * - Countries are publicly readable.
+ * - User profiles are private and can only be read by the owner.
  * - Federations are owned by individual users; only the owner can create, read, update, or delete their federation data.
  * - Players are owned by their parent federation; only the owning federation can create, read, update, or delete player data.
  * - Authorization independence is achieved by denormalizing `federationId` into the `Player` documents.
@@ -19,7 +21,7 @@
  * - The `Player` documents contain a denormalized `federationId` field, which matches the parent federation's document ID. This allows direct authorization checks without needing to perform additional `get()` calls.
  *
  * Structural Segregation:
- * - Public `Country` data is stored in a top-level collection, while private `Federation` and `Player` data are stored in a hierarchical structure. This segregation simplifies access control and improves performance.
+ * - Public `Country` data is stored in a top-level collection, while private `User`, `Federation`, and `Player` data are stored in separate collections or hierarchical structures. This segregation simplifies access control and improves performance.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -35,6 +37,25 @@ service cloud.firestore {
     match /countries/{countryId} {
       allow get, list: if true;
       allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Enforces user-ownership for user profile data.
+     * @path /users/{userId}
+     * @allow (get) - An authenticated user can read their own user profile.
+     * @deny (list, create, update, delete) - Users cannot list, create, update, or delete profiles directly.
+     * @principle Enforces document ownership for reads.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list, create, update, delete: if false;
     }
 
     /**

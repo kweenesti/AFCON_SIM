@@ -48,13 +48,11 @@ import { ScrollArea } from '../ui/scroll-area';
 import {
   useAuth,
   useFirestore,
-  initiateEmailSignUp,
   setDocumentNonBlocking,
   addDocumentNonBlocking,
 } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc, collection } from 'firebase/firestore';
 
@@ -158,6 +156,14 @@ export function RegistrationForm() {
 
         const federationRef = doc(firestore, 'federations', user.uid);
         setDocumentNonBlocking(federationRef, federationData, { merge: true });
+
+        const userProfileRef = doc(firestore, 'users', user.uid);
+        setDocumentNonBlocking(userProfileRef, { 
+          id: user.uid,
+          email: user.email,
+          role: 'federation',
+          displayName: data.representativeName,
+         }, { merge: true });
 
         const playersCollectionRef = collection(
           firestore,
