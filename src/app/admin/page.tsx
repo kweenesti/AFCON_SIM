@@ -12,8 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, query, orderBy, limit, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { List, PlayCircle, Swords } from 'lucide-react';
@@ -69,13 +69,14 @@ export default function AdminPage() {
     
     if (!firestore) return;
 
-    const tournamentsCollection = collection(firestore, "tournaments");
-    addDocumentNonBlocking(tournamentsCollection, {
+    const tournamentRef = doc(collection(firestore, "tournaments"));
+    setDocumentNonBlocking(tournamentRef, {
+        id: tournamentRef.id,
         started: true,
         teams: federations.map(f => f.id),
         stage: 'quarter-finals',
         createdAt: serverTimestamp(),
-    });
+    }, {});
 
     setMessage('Tournament created successfully!');
     toast({
@@ -103,8 +104,9 @@ export default function AdminPage() {
     const matchesCollection = collection(firestore, "matches");
 
     pairs.forEach(pair => {
-      const matchDoc = doc(matchesCollection);
-      batch.set(matchDoc, {
+      const matchDocRef = doc(matchesCollection);
+      batch.set(matchDocRef, {
+        id: matchDocRef.id,
         tournamentId: tournament.id,
         stage: "quarter-finals",
         homeTeamId: pair[0].id,
@@ -192,11 +194,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-start gap-4">
-               <Button onClick={handleStartTournament} disabled={!canStartTournament} variant="accent">
+               <Button onClick={handleStartTournament} disabled={!canStartTournament} variant="secondary">
                 <PlayCircle className="mr-2" />
                 Start Tournament (8 teams required)
               </Button>
-              <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches} variant="accent">
+              <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches} variant="secondary">
                 <Swords className="mr-2" />
                 Generate Quarter-Finals
               </Button>
