@@ -25,22 +25,21 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '../icons/logo';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isRegistered, setIsRegistered] = useState(false);
-
-  useEffect(() => {
-    const teamData = localStorage.getItem('teamData');
-    setIsRegistered(!!teamData);
-  }, [pathname]);
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('teamData');
-    setIsRegistered(false);
+    signOut(auth);
     router.push('/');
   };
+
+  const isRegistered = !isUserLoading && !!user;
 
   const navItems = isRegistered
     ? [

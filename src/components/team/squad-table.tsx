@@ -11,7 +11,12 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
 
 interface SquadTableProps {
   squad: Player[];
@@ -35,6 +40,7 @@ export function SquadTable({ squad }: SquadTableProps) {
               <TableHead>Position</TableHead>
               <TableHead className="text-center">GK</TableHead>
               <TableHead className="text-center">DF</TableHead>
+
               <TableHead className="text-center">MD</TableHead>
               <TableHead className="text-center">AT</TableHead>
             </TableRow>
@@ -47,9 +53,9 @@ export function SquadTable({ squad }: SquadTableProps) {
                   <div className="flex items-center gap-2">
                     <span>{player.name}</span>
                     {player.isCaptain && (
-                       <Tooltip>
+                      <Tooltip>
                         <TooltipTrigger>
-                           <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                          <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>Team Captain</p>
@@ -61,13 +67,26 @@ export function SquadTable({ squad }: SquadTableProps) {
                 <TableCell>
                   <Badge variant="secondary">{player.naturalPosition}</Badge>
                 </TableCell>
-                {Object.entries(player.ratings).map(([pos, rating]) => (
-                  <TableCell key={pos} className="text-center">
-                    <Badge variant={getRatingBadgeVariant(rating)}>
-                      {rating}
-                    </Badge>
-                  </TableCell>
-                ))}
+                <TableCell className="text-center">
+                  <Badge variant={getRatingBadgeVariant(player.gkRating)}>
+                    {player.gkRating}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={getRatingBadgeVariant(player.dfRating)}>
+                    {player.dfRating}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={getRatingBadgeVariant(player.mdRating)}>
+                    {player.mdRating}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={getRatingBadgeVariant(player.atRating)}>
+                    {player.atRating}
+                  </Badge>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

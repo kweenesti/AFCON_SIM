@@ -11,11 +11,10 @@ import {
   PlusCircle,
   Star,
   Trash2,
-  User,
 } from 'lucide-react';
 import { africanCountries } from '@/lib/countries';
-import type { Player, PlayerPosition, Team } from '@/lib/types';
-import { playerPositions, PlayerRatings } from '@/lib/types';
+import type { Player, PlayerPosition, Federation } from '@/lib/types';
+import { playerPositions } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -46,6 +45,18 @@ import {
 } from '../ui/table';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { ScrollArea } from '../ui/scroll-area';
+import {
+  useAuth,
+  useFirestore,
+  initiateEmailSignUp,
+  setDocumentNonBlocking,
+  addDocumentNonBlocking,
+} from '@/firebase';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
+import { doc, collection } from 'firebase/firestore';
 
 const playerSchema = z.object({
   name: z.string().min(2, 'Player name must be at least 2 characters.'),
@@ -53,11 +64,11 @@ const playerSchema = z.object({
 });
 
 const formSchema = z.object({
-  representative: z
-    .string()
-    .min(2, 'Representative name is required.'),
-  country: z.string().min(1, 'Please select a country.'),
-  manager: z.string().min(2, 'Manager name is required.'),
+  representativeName: z.string().min(2, 'Representative name is required.'),
+  representativeEmail: z.string().email('Please enter a valid email.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
+  countryName: z.string().min(1, 'Please select a country.'),
+  managerName: z.string().min(2, 'Manager name is required.'),
   squad: z
     .array(playerSchema)
     .length(23, 'You must have exactly 23 players in the squad.'),
@@ -71,15 +82,22 @@ const SQUAD_SIZE = 23;
 export function RegistrationForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const [step, setStep] = useState(1);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      representative: '',
-      country: '',
-      manager: '',
-      squad: [],
+      representativeName: '',
+      representativeEmail: '',
+      password: '',
+      countryName: '',
+      managerName: '',
+      squad: Array.from({ length: SQUAD_SIZE }, () => ({
+        name: '',
+        naturalPosition: 'MD',
+      })),
       captainIndex: 0,
     },
   });
@@ -91,7 +109,9 @@ export function RegistrationForm() {
 
   const handleNext = async () => {
     const fieldsToValidate =
-      step === 1 ? ['representative', 'country'] : ['manager'];
+      step === 1
+        ? ['representativeName', 'representativeEmail', 'password', 'countryName']
+        : ['managerName'];
     const isValid = await form.trigger(fieldsToValidate as any);
     if (isValid) {
       setStep(step + 1);
@@ -106,46 +126,68 @@ export function RegistrationForm() {
     }
   };
 
-  const generateRatings = (naturalPosition: PlayerPosition): PlayerRatings => {
-    const ratings = {} as PlayerRatings;
+  const generateRatings = (naturalPosition: PlayerPosition) => {
+    const ratings: any = {};
     playerPositions.forEach((pos) => {
       if (pos === naturalPosition) {
-        ratings[pos] = Math.floor(Math.random() * 51) + 50; // 50-100
+        ratings[`${pos.toLowerCase()}Rating`] = Math.floor(Math.random() * 51) + 50;
       } else {
-        ratings[pos] = Math.floor(Math.random() * 51); // 0-50
+        ratings[`${pos.toLowerCase()}Rating`] = Math.floor(Math.random() * 51);
       }
     });
     return ratings;
   };
 
-  const onSubmit = (data: FormData) => {
-    const squadWithRatings: Player[] = data.squad.map((p, index) => ({
-      id: `${p.name.replace(/\s+/g, '-')}-${index}`,
-      name: p.name,
-      naturalPosition: p.naturalPosition,
-      isCaptain: index === data.captainIndex,
-      ratings: generateRatings(p.naturalPosition),
-    }));
-
-    const finalTeam: Team = {
-      representative: data.representative,
-      country: data.country,
-      manager: data.manager,
-      squad: squadWithRatings,
-    };
-
+  const onSubmit = async (data: FormData) => {
     try {
-      localStorage.setItem('teamData', JSON.stringify(finalTeam));
-      toast({
-        title: 'Registration Successful!',
-        description: `${data.country} has joined the tournament.`,
-      });
-      router.push('/dashboard');
-    } catch (error) {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        data.representativeEmail,
+        data.password
+      );
+      const user = userCredential.user;
+
+      if (user) {
+        const federationData: Omit<Federation, 'id'> = {
+          representativeName: data.representativeName,
+          representativeEmail: data.representativeEmail,
+          countryId: data.countryName, // Assuming country name is used as ID for simplicity
+          countryName: data.countryName,
+          managerName: data.managerName,
+        };
+
+        const federationRef = doc(firestore, 'federations', user.uid);
+        setDocumentNonBlocking(federationRef, federationData, { merge: true });
+
+        const playersCollectionRef = collection(
+          firestore,
+          'federations',
+          user.uid,
+          'players'
+        );
+
+        data.squad.forEach((p, index) => {
+          const playerData: Omit<Player, 'id'> = {
+            federationId: user.uid,
+            name: p.name,
+            naturalPosition: p.naturalPosition,
+            isCaptain: index === data.captainIndex,
+            ...generateRatings(p.naturalPosition),
+          };
+          addDocumentNonBlocking(playersCollectionRef, playerData);
+        });
+
+        toast({
+          title: 'Registration Successful!',
+          description: `${data.countryName} has joined the tournament.`,
+        });
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error(error);
       toast({
         title: 'Registration Failed',
-        description:
-          'Could not save your team data. Please try again.',
+        description: error.message || 'Could not save your team data. Please try again.',
         variant: 'destructive',
       });
     }
@@ -163,46 +205,80 @@ export function RegistrationForm() {
 
         {step === 1 && (
           <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="representative"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Representative Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="representativeName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Representative Name</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a country to represent" />
-                      </SelectTrigger>
+                      <Input placeholder="e.g., John Doe" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      {africanCountries.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="countryName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a country to represent" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {africanCountries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="representativeEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="e.g., rep@example.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         )}
 
@@ -210,7 +286,7 @@ export function RegistrationForm() {
           <div className="space-y-6">
             <FormField
               control={form.control}
-              name="manager"
+              name="managerName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Manager Name</FormLabel>
@@ -224,16 +300,6 @@ export function RegistrationForm() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Squad ({SQUAD_SIZE} Players)</CardTitle>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={addPlayer}
-                  disabled={fields.length >= SQUAD_SIZE}
-                >
-                  <PlusCircle />
-                  Add Player
-                </Button>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-96">
@@ -242,7 +308,7 @@ export function RegistrationForm() {
                     name="captainIndex"
                     render={({ field }) => (
                       <RadioGroup
-                        onValueChange={field.onChange}
+                        onValueChange={(value) => field.onChange(parseInt(value))}
                         value={String(field.value)}
                         className="space-y-1"
                       >

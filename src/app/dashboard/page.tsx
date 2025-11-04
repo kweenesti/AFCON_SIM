@@ -1,29 +1,43 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Team } from '@/lib/types';
+import type { Federation, Player } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SquadTable } from '@/components/team/squad-table';
-import { Flag, MapPin, User, Shield } from 'lucide-react';
+import { Flag, User, Shield } from 'lucide-react';
+import { useAuth, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [team, setTeam] = useState<Team | null>(null);
-  const [loading, setLoading] = useState(true);
+  const auth = useAuth();
+  const firestore = useFirestore();
+
+  const federationRef = useMemoFirebase(
+    () => (auth.currentUser ? doc(firestore, 'federations', auth.currentUser.uid) : null),
+    [firestore, auth.currentUser]
+  );
+  const { data: team, isLoading: isTeamLoading } = useDoc<Federation>(federationRef);
+
+  const playersRef = useMemoFirebase(
+    () => (auth.currentUser ? collection(firestore, 'federations', auth.currentUser.uid, 'players') : null),
+    [firestore, auth.currentUser]
+  );
+  const { data: squad, isLoading: isSquadLoading } = useCollection<Player>(playersRef);
+
 
   useEffect(() => {
-    const savedTeam = localStorage.getItem('teamData');
-    if (!savedTeam) {
+    if (!auth.currentUser && !isTeamLoading) {
       router.replace('/');
-    } else {
-      setTeam(JSON.parse(savedTeam));
-      setLoading(false);
     }
-  }, [router]);
+  }, [auth.currentUser, isTeamLoading, router]);
 
-  if (loading) {
+  const isLoading = isTeamLoading || isSquadLoading;
+
+  if (isLoading) {
     return (
       <div className="container mx-auto p-4 space-y-8">
         <div className="grid gap-4 md:grid-cols-3">
@@ -44,7 +58,7 @@ export default function DashboardPage() {
     <main className="container mx-auto p-4 md:p-8">
       <div className="space-y-8">
         <h1 className="font-headline text-3xl font-bold md:text-4xl">
-          {team.country} National Team Dashboard
+          {team.countryName} National Team Dashboard
         </h1>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -54,7 +68,7 @@ export default function DashboardPage() {
               <Flag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{team.country}</div>
+              <div className="text-2xl font-bold">{team.countryName}</div>
             </CardContent>
           </Card>
           <Card>
@@ -63,7 +77,7 @@ export default function DashboardPage() {
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{team.manager}</div>
+              <div className="text-2xl font-bold">{team.managerName}</div>
             </CardContent>
           </Card>
           <Card>
@@ -74,7 +88,7 @@ export default function DashboardPage() {
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{team.representative}</div>
+              <div className="text-2xl font-bold">{team.representativeName}</div>
             </CardContent>
           </Card>
         </div>
@@ -84,7 +98,7 @@ export default function DashboardPage() {
             <CardTitle>Official Squad List</CardTitle>
           </CardHeader>
           <CardContent>
-            <SquadTable squad={team.squad} />
+            <SquadTable squad={squad || []} />
           </CardContent>
         </Card>
       </div>

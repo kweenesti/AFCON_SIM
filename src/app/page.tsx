@@ -1,29 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { RegistrationForm } from '@/components/team/registration-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderImages } from '@/lib/placeholder-images';
+import { useUser } from '@/firebase';
 
 export default function Home() {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    const teamData = localStorage.getItem('teamData');
-    if (teamData) {
+    if (!isUserLoading && user) {
       router.replace('/dashboard');
-    } else {
-      setChecking(false);
     }
-  }, [router]);
+  }, [user, isUserLoading, router]);
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
-  if (checking) {
+  if (isUserLoading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center">
         <div className="w-full max-w-4xl space-y-8 p-4">
