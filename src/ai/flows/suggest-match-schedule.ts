@@ -62,24 +62,25 @@ const suggestMatchSchedulePrompt = ai.definePrompt({
   name: 'suggestMatchSchedulePrompt',
   input: {schema: SuggestMatchScheduleInputSchema},
   output: {schema: SuggestMatchScheduleOutputSchema},
-  prompt: `You are a tournament organizer responsible for scheduling matches.
+  prompt: `You are an expert AI tournament organizer. Your task is to create an optimal match schedule for a football tournament.
 
-  Given the following information about the countries participating, their existing schedules, stadium availabilities, and weather forecasts, suggest an optimal match schedule for the tournament that minimizes player fatigue and maximizes viewership.
+  Here is the data you must work with:
+  - Participating Countries: {{{countries}}}
+  - Known Pre-existing Schedules (if any): {{{existingSchedules}}}
+  - Stadium Availability: {{{stadiumAvailabilities}}}
+  - Weather Forecasts: {{{weatherForecasts}}}
+  - Tournament Window: From {{{tournamentStartDate}}} to {{{tournamentEndDate}}}
 
-  Countries: {{{countries}}}
-  Existing Schedules: {{{existingSchedules}}}
-  Stadium Availabilities: {{{stadiumAvailabilities}}}
-  Weather Forecasts: {{{weatherForecasts}}}
-  Tournament Start Date: {{{tournamentStartDate}}}
-  Tournament End Date: {{{tournamentEndDate}}}
+  Your goal is to generate a schedule that is fair, logical, and maximizes fan engagement. Follow these rules strictly:
+  1.  **Rest Days are Mandatory**: Each team MUST have at least two full rest days between their matches. Do not schedule a team to play on consecutive days or with only one day of rest.
+  2.  **Prioritize Weekends**: To maximize viewership and attendance, schedule high-profile matches or as many matches as possible on Saturdays and Sundays.
+  3.  **Use Available Stadiums Only**: Only schedule matches at stadiums on dates they are explicitly listed as available.
+  4.  **Avoid Bad Weather**: If a location has a forecast of "rain", "storm", or "heavy wind", try to avoid scheduling matches there. Prioritize locations with "sunny" or "clear skies".
+  5.  **Respect Existing Conflicts**: Do not schedule a match for a team if it conflicts with their existingSchedules.
+  6.  **Stay Within Tournament Dates**: All matches must be scheduled on or after tournamentStartDate and on or before tournamentEndDate.
+  7.  **Output Format**: Your final output must be a list of strings. Each string should represent one match in the format: "Team A vs Team B at [Stadium Name] on YYYY-MM-DD".
 
-  Consider the following factors when creating the schedule:
-  - Avoid scheduling matches for countries on consecutive days to minimize player fatigue.
-  - Schedule matches at stadiums with good weather forecasts to maximize viewership.
-  - Consider existing schedules to avoid conflicts.
-  - Use tournament start and end dates to ensure the schedule is correct
-
-  Output the schedule as a list of match descriptions, where each description includes the two teams playing, the date, and the stadium.
+  Based on these rules and the data provided, create and output the optimal schedule.
   `,
 });
 
