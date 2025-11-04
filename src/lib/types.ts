@@ -41,3 +41,17 @@ export interface Tournament {
   stage: 'quarter-finals' | 'semi-finals' | 'final';
   createdAt: any; // Using 'any' for Firestore's serverTimestamp
 }
+
+export interface Match {
+    id: string;
+    tournamentId: string;
+    stage: 'quarter-finals' | 'semi-finals' | 'final';
+    homeTeamId: string;
+    awayTeamId: string;
+    homeTeamName: string;
+    awayTeamName: string;
+    homeScore?: number;
+    awayScore?: number;
+    played: boolean;
+    createdAt: any;
+}

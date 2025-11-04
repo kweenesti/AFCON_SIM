@@ -157,6 +157,26 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "started", "teams", "stage", "createdAt"]
+    },
+     "Match": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Match",
+      "description": "Represents a single match between two teams in a tournament.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tournamentId": { "type": "string", "description": "The ID of the tournament this match belongs to." },
+        "stage": { "type": "string", "enum": ["quarter-finals", "semi-finals", "final"] },
+        "homeTeamId": { "type": "string" },
+        "awayTeamId": { "type": "string" },
+        "homeTeamName": { "type": "string" },
+        "awayTeamName": { "type": "string" },
+        "homeScore": { "type": "number" },
+        "awayScore": { "type": "number" },
+        "played": { "type": "boolean", "default": false },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "tournamentId", "stage", "homeTeamId", "awayTeamId", "homeTeamName", "awayTeamName", "played", "createdAt"]
     }
   },
   "auth": {
@@ -250,8 +270,22 @@
             }
           ]
         }
+      },
+      {
+        "path": "/matches/{matchId}",
+        "definition": {
+          "entityName": "Match",
+          "schema": { "$ref": "#/backend/entities/Match" },
+          "description": "Stores data for a single match. Only admins can create/update, all users can read.",
+          "params": [
+            {
+              "name": "matchId",
+              "description": "The unique identifier for the match."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the African Nations Tournament Simulator, focusing on secure and scalable data management for federations, countries, and players. Key to this design is authorization independence, achieved through denormalization. The structure also segregates data based on access requirements and uses consistent access modeling patterns.\n\nCountries are stored in a top-level `/countries` collection. This is public data, so no specific authorization is required.\n\nUser profiles are stored in a top-level `/users` collection, with document IDs matching the user's authentication UID. This allows for easy lookup of user-specific data like roles.\n\nFederations, which represent the user accounts in this system, are stored in a `/federations` collection.  Since this represents private data, the documents will store the `id` of the authenticated user who created it.  Security rules can then ensure only the authenticated user can read/write to their own Federation document. This ensures that each federation's data is isolated and accessible only by the authorized representative.\n\nPlayers are stored in a subcollection `/federations/{federationId}/players`. This subcollection approach provides a clear hierarchical structure that reflects the relationship between federations and players. To maintain authorization independence and enable efficient querying, the `federationId` is denormalized into each `Player` document.  This eliminates the need for complex `get()` calls in security rules and enables atomic operations.\n\nTournaments are stored in a top-level `/tournaments` collection. Only users with an 'admin' role can create tournaments, but all users can read them to see the tournament status.\n\nThis design achieves Authorization Independence by denormalizing the `federationId` into the `players` collection, removing the need to retrieve parent data for authorization. QAPs are supported by segregating data with different access needs (public countries vs. private federation/player data) and using a path-based ownership model for federations and their players."
+    "reasoning": "The Firestore data structure is designed to support the African Nations Tournament Simulator, focusing on secure and scalable data management for federations, countries, and players. Key to this design is authorization independence, achieved through denormalization. The structure also segregates data based on access requirements and uses consistent access modeling patterns.\n\nCountries are stored in a top-level `/countries` collection. This is public data, so no specific authorization is required.\n\nUser profiles are stored in a top-level `/users` collection, with document IDs matching the user's authentication UID. This allows for easy lookup of user-specific data like roles.\n\nFederations, which represent the user accounts in this system, are stored in a `/federations` collection.  Since this represents private data, the documents will store the `id` of the authenticated user who created it.  Security rules can then ensure only the authenticated user can read/write to their own Federation document. This ensures that each federation's data is isolated and accessible only by the authorized representative.\n\nPlayers are stored in a subcollection `/federations/{federationId}/players`. This subcollection approach provides a clear hierarchical structure that reflects the relationship between federations and players. To maintain authorization independence and enable efficient querying, the `federationId` is denormalized into each `Player` document.  This eliminates the need for complex `get()` calls in security rules and enables atomic operations.\n\nTournaments are stored in a top-level `/tournaments` collection. Only users with an 'admin' role can create tournaments, but all users can read them to see the tournament status.\n\nMatches are stored in a top-level `/matches` collection. This allows for easy querying of all matches in the tournament. Only admins can create or update matches, while all authenticated users can read them. Each match document contains a `tournamentId` to link it back to a specific tournament."
   }
 }

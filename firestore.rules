@@ -8,6 +8,7 @@
  * - /federations/{federationId}: Federation data, accessible only to the authenticated user with the matching federationId.
  * - /federations/{federationId}/players/{playerId}: Player data nested under federations, accessible only to the owning federation.
  * - /tournaments/{tournamentId}: Tournament data. Can only be created by admins, but readable by all.
+ * - /matches/{matchId}: Match data. Can only be created/updated by admins, readable by all.
  *
  * Key Security Decisions:
  * - Countries are publicly readable.
@@ -15,6 +16,7 @@
  * - Federations are owned by individual users; only the owner can create, read, update, or delete their federation data.
  * - Players are owned by their parent federation; only the owning federation can create, read, update, or delete player data.
  * - Tournaments can only be created by admins, ensuring controlled tournament management.
+ * - Matches can only be created and updated by admins.
  * - Authorization independence is achieved by denormalizing `federationId` into the `Player` documents.
  * - Data validation is limited to authorization-critical fields (e.g., `federationId` on Player creation).
  * - Listing of federations is disallowed for security. Listing of players is only allowed for the owner.
@@ -28,6 +30,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
 
     /**
      * @description Allows anyone to read country data. No write access allowed.
@@ -49,10 +59,6 @@ service cloud.firestore {
      * @principle Enforces document ownership for reads.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
@@ -69,10 +75,6 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes.
      */
     match /federations/{federationId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(federationId) {
         return request.auth.uid == federationId;
       }
@@ -83,7 +85,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner(federationId);
       allow get: if isOwner(federationId);
       // Allow admins to list all federations
-      allow list: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow list: if isAdmin();
       allow update: if isExistingOwner(federationId);
       allow delete: if isExistingOwner(federationId);
     }
@@ -97,10 +99,6 @@ service cloud.firestore {
      * @principle Enforces document ownership for writes, validates relational integrity on create, and prevents modification of the federationId.
      */
     match /federations/{federationId}/players/{playerId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(federationId) {
         return request.auth.uid == federationId;
       }
@@ -125,17 +123,23 @@ service cloud.firestore {
      * @principle Secures tournament creation to admins while allowing public read access.
      */
     match /tournaments/{tournamentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isAdmin() {
-          return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-      }
-
-      allow create: if isSignedIn() && isAdmin();
+      allow create: if isAdmin();
       allow get, list: if true;
       allow update, delete: if false;
+    }
+
+    /**
+     * @description Manages access to match data.
+     * @path /matches/{matchId}
+     * @allow (create, update) - Only admins can create and update matches.
+     * @allow (get, list) - All authenticated users can read match data.
+     * @deny (delete) - Matches cannot be deleted.
+     * @principle Secures match management to admins.
+     */
+    match /matches/{matchId} {
+        allow create, update: if isAdmin();
+        allow get, list: if isSignedIn();
+        allow delete: if false;
     }
   }
 }
