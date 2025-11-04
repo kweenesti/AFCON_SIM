@@ -73,7 +73,7 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
             played: true
         });
 
-        return { success: true, message: `Match ${matchId} simulated.` };
+        return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
         console.error('Error simulating match:', error);
         return { success: false, message: error.message || 'An unexpected error occurred.' };

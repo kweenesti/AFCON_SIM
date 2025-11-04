@@ -130,33 +130,41 @@ export default function AdminPage() {
   };
   
     const generateSemiFinals = async () => {
-        if (!matches || !tournament || !firestore) return;
+        if (!matches || !tournament || !firestore || !federations) return;
+    
         const qfMatches = matches.filter(m => m.stage === 'quarter-finals');
-        const playedQf = qfMatches.filter(m => m.played);
+        if (qfMatches.length !== 4) {
+            setMessage("4 quarter-final matches must be generated first.");
+            toast({ title: "Error", description: "4 quarter-final matches must be generated first.", variant: "destructive" });
+            return;
+        }
 
+        const playedQf = qfMatches.filter(m => m.played);
         if (playedQf.length !== 4) {
             setMessage("All 4 quarter-final matches must be played first.");
             toast({ title: "Error", description: "All 4 quarter-final matches must be played first.", variant: "destructive" });
             return;
         }
-
+    
         const winners = playedQf.map(m => {
             const winnerId = m.winnerId;
-            const winnerFederation = federations?.find(f => f.id === winnerId);
-            return winnerFederation;
-        }).filter(Boolean) as Federation[];
-
+            // Find the full federation object for the winner
+            return federations.find(f => f.id === winnerId);
+        }).filter((f): f is Federation => !!f); // Filter out any undefined results and assert type
+    
         if (winners.length !== 4) {
-            setMessage("Could not determine 4 unique winners.");
+            setMessage("Could not determine 4 unique winners from the matches played.");
+            toast({ title: "Error", description: "Could not determine 4 unique winners.", variant: "destructive" });
             return;
         }
-
+    
+        // Pair up the winners for the semi-finals
         const shuffled = [...winners].sort(() => Math.random() - 0.5);
         const pairs = [shuffled.slice(0, 2), shuffled.slice(2, 4)];
-
+    
         const batch = writeBatch(firestore);
         const matchesCollection = collection(firestore, "matches");
-
+    
         pairs.forEach(pair => {
             const matchDocRef = doc(matchesCollection);
             batch.set(matchDocRef, {
@@ -171,7 +179,7 @@ export default function AdminPage() {
                 createdAt: serverTimestamp()
             });
         });
-
+    
         await batch.commit();
         setMessage("Semi-final matches generated!");
         toast({ title: "Semi-Finals Generated!", description: "The semi-final fixtures are now set." });
