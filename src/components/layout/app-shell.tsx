@@ -9,6 +9,7 @@ import {
   LogOut,
   PanelLeft,
   CalendarCog,
+  UserCog,
 } from 'lucide-react';
 
 import {
@@ -41,12 +42,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isRegistered = !isUserLoading && !!user;
 
-  const navItems = isRegistered
-    ? [
-        { href: '/dashboard', label: 'Dashboard', icon: Home },
-        { href: '/schedule', label: 'Scheduler', icon: CalendarCog },
-      ]
-    : [{ href: '/', label: 'Register', icon: FilePlus }];
+  const navItems =
+    isRegistered && user?.profile?.role === 'admin'
+      ? [
+          { href: '/dashboard', label: 'Dashboard', icon: Home },
+          { href: '/schedule', label: 'Scheduler', icon: CalendarCog },
+          { href: '/admin', label: 'Admin', icon: UserCog },
+        ]
+      : isRegistered
+      ? [
+          { href: '/dashboard', label: 'Dashboard', icon: Home },
+          { href: '/schedule', label: 'Scheduler', icon: CalendarCog },
+        ]
+      : [{ href: '/', label: 'Register', icon: FilePlus }];
 
   return (
     <SidebarProvider>
