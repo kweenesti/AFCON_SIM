@@ -33,3 +33,11 @@ export interface UserProfile {
   displayName?: string;
   role: 'admin' | 'federation';
 }
+
+export interface Tournament {
+  id: string;
+  started: boolean;
+  teams: string[];
+  stage: 'quarter-finals' | 'semi-finals' | 'final';
+  createdAt: any; // Using 'any' for Firestore's serverTimestamp
+}

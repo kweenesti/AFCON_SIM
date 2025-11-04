@@ -7,12 +7,14 @@
  * - /users/{userId}: User profile data, readable only by the owning user.
  * - /federations/{federationId}: Federation data, accessible only to the authenticated user with the matching federationId.
  * - /federations/{federationId}/players/{playerId}: Player data nested under federations, accessible only to the owning federation.
+ * - /tournaments/{tournamentId}: Tournament data. Can only be created by admins, but readable by all.
  *
  * Key Security Decisions:
  * - Countries are publicly readable.
  * - User profiles are private and can only be read by the owner.
  * - Federations are owned by individual users; only the owner can create, read, update, or delete their federation data.
  * - Players are owned by their parent federation; only the owning federation can create, read, update, or delete player data.
+ * - Tournaments can only be created by admins, ensuring controlled tournament management.
  * - Authorization independence is achieved by denormalizing `federationId` into the `Player` documents.
  * - Data validation is limited to authorization-critical fields (e.g., `federationId` on Player creation).
  * - Listing of federations is disallowed for security. Listing of players is only allowed for the owner.
@@ -80,9 +82,10 @@ service cloud.firestore {
       }
       allow create: if isSignedIn() && isOwner(federationId);
       allow get: if isOwner(federationId);
+      // Allow admins to list all federations
+      allow list: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow update: if isExistingOwner(federationId);
       allow delete: if isExistingOwner(federationId);
-      allow list: if false;
     }
 
     /**
@@ -111,6 +114,28 @@ service cloud.firestore {
       allow list: if isOwner(federationId);
       allow update: if isExistingOwner(federationId) && request.resource.data.federationId == resource.data.federationId;
       allow delete: if isExistingOwner(federationId);
+    }
+
+    /**
+     * @description Manages access to tournament data.
+     * @path /tournaments/{tournamentId}
+     * @allow (create) - Only authenticated users with an 'admin' role can create new tournaments.
+     * @allow (get, list) - All users can read tournament information.
+     * @deny (update, delete) - Tournaments cannot be updated or deleted through the client SDK.
+     * @principle Secures tournament creation to admins while allowing public read access.
+     */
+    match /tournaments/{tournamentId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isAdmin() {
+          return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      }
+
+      allow create: if isSignedIn() && isAdmin();
+      allow get, list: if true;
+      allow update, delete: if false;
     }
   }
 }
