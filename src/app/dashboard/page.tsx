@@ -18,7 +18,7 @@ import {
   setDocumentNonBlocking,
   useUser,
 } from '@/firebase';
-import { doc, collection, writeBatch } from 'firebase/firestore';
+import { doc, collection, writeBatch, deleteDoc } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
@@ -55,6 +55,7 @@ export default function DashboardPage() {
     }
     if(existingSquad) {
       setSquad(existingSquad);
+      setTeamRating(computeTeamRating(existingSquad));
     }
   }, [federation, existingSquad]);
 
@@ -77,23 +78,28 @@ export default function DashboardPage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!user || !federation || !federationRef) {
+    if (!user || !federation || !firestore) {
       toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
       return;
     }
-
+  
     try {
       // 1. Update manager name in federation document
-      const newFederationData = { ...federation, managerName };
-      setDocumentNonBlocking(federationRef, newFederationData, { merge: true });
-
+      if (federationRef) {
+        const newFederationData = { ...federation, managerName };
+        setDocumentNonBlocking(federationRef, newFederationData, { merge: true });
+      }
+  
       // 2. Overwrite the players subcollection with the new squad
       const batch = writeBatch(firestore);
       const playersCollectionRef = collection(firestore, 'federations', user.uid, 'players');
-
+  
       // First, delete existing players
+      // We do this non-blockingly for UI responsiveness, though it's a series of operations
       (existingSquad || []).forEach(player => {
         const playerDocRef = doc(playersCollectionRef, player.id);
+        // We can't use a non-blocking delete inside a batch, so we'll just delete directly
+        // This is a quick operation so it's okay.
         batch.delete(playerDocRef);
       });
       
@@ -103,19 +109,26 @@ export default function DashboardPage() {
         const playerDocRef = doc(playersCollectionRef, player.id);
         batch.set(playerDocRef, { ...player, federationId: user.uid });
       });
-
+  
       await batch.commit();
-
+  
       toast({
         title: 'Success!',
         description: 'Your team information has been saved.',
       });
-
+  
     } catch (error: any) {
-      console.error(error);
+      console.error("Save Error:", error);
+      const permissionError = new FirestorePermissionError({
+        path: `/federations/${user.uid}`,
+        operation: 'write',
+        requestResourceData: { managerName, squad }
+      });
+      errorEmitter.emit('permission-error', permissionError);
+
       toast({
         title: 'Save Failed',
-        description: error.message || 'Could not save your changes.',
+        description: "Could not save your changes. Check permissions.",
         variant: 'destructive',
       });
     }
