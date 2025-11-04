@@ -22,6 +22,8 @@ import { doc, collection, writeBatch } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -50,14 +52,15 @@ export default function DashboardPage() {
   
   // Populate form and squad with existing data on load
   useEffect(() => {
-    if (federation) {
+    if (federation && federation.managerName !== managerName) {
       setManagerName(federation.managerName);
     }
-    if(existingSquad) {
+    // Deep comparison to prevent re-renders from the same squad data
+    if(existingSquad && JSON.stringify(existingSquad) !== JSON.stringify(squad)) {
       setSquad(existingSquad);
       setTeamRating(computeTeamRating(existingSquad));
     }
-  }, [federation, existingSquad]);
+  }, [federation, existingSquad, managerName, squad]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -114,12 +117,15 @@ export default function DashboardPage() {
       });
   
     } catch (error: any) {
-      console.error("Save Error:", error);
-      toast({
-        title: 'Save Failed',
-        description: "Could not save your changes. Check permissions or try again.",
-        variant: 'destructive',
-      });
+      console.error("Save Error:", error); // Keep console error for debugging
+      // The global error handler will catch permission errors, but for other errors...
+      if (!(error instanceof FirestorePermissionError)) {
+          toast({
+              title: 'Save Failed',
+              description: error.message || "Could not save your changes. Please try again.",
+              variant: 'destructive',
+          });
+      }
     }
   };
   
