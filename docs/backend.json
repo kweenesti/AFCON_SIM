@@ -1,0 +1,184 @@
+{
+  "entities": {
+    "Federation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Federation",
+      "type": "object",
+      "description": "Represents a football federation participating in the tournament.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the federation."
+        },
+        "representativeName": {
+          "type": "string",
+          "description": "Name of the federation's representative."
+        },
+        "representativeEmail": {
+          "type": "string",
+          "description": "Email address of the federation's representative.",
+          "format": "email"
+        },
+        "countryId": {
+          "type": "string",
+          "description": "Reference to Country. (Relationship: Federation 1:1 Country)"
+        },
+        "managerName": {
+          "type": "string",
+          "description": "Name of the team's manager."
+        }
+      },
+      "required": [
+        "id",
+        "representativeName",
+        "representativeEmail",
+        "countryId",
+        "managerName"
+      ]
+    },
+    "Country": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Country",
+      "type": "object",
+      "description": "Represents an African country participating in the tournament.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the country."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the country."
+        },
+        "flagUrl": {
+          "type": "string",
+          "description": "URL to the country's flag image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "flagUrl"
+      ]
+    },
+    "Player": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Player",
+      "type": "object",
+      "description": "Represents a player in a team's squad.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the player."
+        },
+        "federationId": {
+          "type": "string",
+          "description": "Reference to Federation. (Relationship: Federation 1:N Player)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the player."
+        },
+        "naturalPosition": {
+          "type": "string",
+          "description": "The player's natural position (GK, DF, MD, AT)."
+        },
+        "gkRating": {
+          "type": "number",
+          "description": "Player's rating as a Goalkeeper (GK)."
+        },
+        "dfRating": {
+          "type": "number",
+          "description": "Player's rating as a Defender (DF)."
+        },
+        "mdRating": {
+          "type": "number",
+          "description": "Player's rating as a Midfielder (MD)."
+        },
+        "atRating": {
+          "type": "number",
+          "description": "Player's rating as an Attacker (AT)."
+        },
+        "isCaptain": {
+          "type": "boolean",
+          "description": "Indicates whether the player is the captain of the team."
+        }
+      },
+      "required": [
+        "id",
+        "federationId",
+        "name",
+        "naturalPosition",
+        "gkRating",
+        "dfRating",
+        "mdRating",
+        "atRating",
+        "isCaptain"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/countries/{countryId}",
+        "definition": {
+          "entityName": "Country",
+          "schema": {
+            "$ref": "#/backend/entities/Country"
+          },
+          "description": "Stores country data. Accessible to all users.",
+          "params": [
+            {
+              "name": "countryId",
+              "description": "The unique identifier of the country."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/federations/{federationId}",
+        "definition": {
+          "entityName": "Federation",
+          "schema": {
+            "$ref": "#/backend/entities/Federation"
+          },
+          "description": "Stores federation data. Only accessible to the authenticated user with matching federationId.",
+          "params": [
+            {
+              "name": "federationId",
+              "description": "The unique identifier of the federation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/federations/{federationId}/players/{playerId}",
+        "definition": {
+          "entityName": "Player",
+          "schema": {
+            "$ref": "#/backend/entities/Player"
+          },
+          "description": "Stores player data. Includes denormalized 'federationId' for authorization independence. Only accessible to the federation who owns the player.",
+          "params": [
+            {
+              "name": "federationId",
+              "description": "The unique identifier of the federation."
+            },
+            {
+              "name": "playerId",
+              "description": "The unique identifier of the player."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the African Nations Tournament Simulator, focusing on secure and scalable data management for federations, countries, and players. Key to this design is authorization independence, achieved through denormalization. The structure also segregates data based on access requirements and uses consistent access modeling patterns.\n\nCountries are stored in a top-level `/countries` collection. This is public data, so no specific authorization is required.\n\nFederations, which represent the user accounts in this system, are stored in a `/federations` collection.  Since this represents private data, the documents will store the `id` of the authenticated user who created it.  Security rules can then ensure only the authenticated user can read/write to their own Federation document. This ensures that each federation's data is isolated and accessible only by the authorized representative.\n\nPlayers are stored in a subcollection `/federations/{federationId}/players`. This subcollection approach provides a clear hierarchical structure that reflects the relationship between federations and players. To maintain authorization independence and enable efficient querying, the `federationId` is denormalized into each `Player` document.  This eliminates the need for complex `get()` calls in security rules and enables atomic operations.\n\nThis design achieves Authorization Independence by denormalizing the `federationId` into the `players` collection, removing the need to retrieve parent data for authorization. QAPs are supported by segregating data with different access needs (public countries vs. private federation/player data) and using a path-based ownership model for federations and their players."
+  }
+}
