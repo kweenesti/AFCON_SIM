@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -16,7 +16,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBl
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { List, PlayCircle, Swords } from 'lucide-react';
+import { List, PlayCircle, Swords, Zap } from 'lucide-react';
+import { simulateMatchAction } from './actions';
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -24,6 +25,7 @@ export default function AdminPage() {
   const router = useRouter();
   const firestore = useFirestore();
   const [message, setMessage] = useState('');
+  const [isPending, startTransition] = useTransition();
 
   // Fetch all federations
   const federationsRef = useMemoFirebase(
@@ -125,6 +127,25 @@ export default function AdminPage() {
         description: 'Quarter-final fixtures are now set.',
     });
   };
+  
+  const handleSimulateMatch = (match: Match) => {
+    startTransition(async () => {
+      const result = await simulateMatchAction(match.id, match.homeTeamId, match.awayTeamId);
+       if (result.success) {
+        toast({
+          title: 'Match Simulated!',
+          description: `The result for ${match.homeTeamName} vs ${match.awayTeamName} is in.`,
+        });
+      } else {
+        toast({
+          title: 'Simulation Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
 
   const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
 
@@ -216,8 +237,18 @@ export default function AdminPage() {
                   {matches.map(match => (
                     <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg">
                        <span className="font-medium">{match.homeTeamName}</span>
-                       <span className="text-muted-foreground">vs</span>
+                        {match.played ? (
+                          <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
+                        ) : (
+                          <span className="text-muted-foreground">vs</span>
+                        )}
                        <span className="font-medium">{match.awayTeamName}</span>
+                       {!match.played && (
+                         <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending}>
+                           <Zap className="mr-2 h-4 w-4" />
+                           {isPending ? 'Simulating...' : 'Simulate'}
+                         </Button>
+                       )}
                     </li>
                   ))}
                 </ul>
