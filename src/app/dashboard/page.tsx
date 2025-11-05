@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -75,9 +76,8 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
-    if (!existingSquad) return;
-    // Pass existing squad to preserve IDs
-    const newSquad = generatePlayers(existingSquad);
+    // Pass existing squad to preserve IDs and names
+    const newSquad = generatePlayers(squad);
     setSquad(newSquad);
     const rating = computeTeamRating(newSquad);
     toast({

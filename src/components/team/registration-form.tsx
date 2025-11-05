@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -55,6 +56,8 @@ import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc, collection } from 'firebase/firestore';
+import { generatePlayers, randInt } from '@/lib/generate-players';
+import { firstNames, lastNames } from '@/lib/random-names';
 
 const playerSchema = z.object({
   name: z.string().min(2, 'Player name must be at least 2 characters.'),
@@ -77,6 +80,25 @@ type FormData = z.infer<typeof formSchema>;
 
 const SQUAD_SIZE = 23;
 
+// Helper to generate a random full name
+const generateRandomName = () => {
+  const firstName = firstNames[randInt(0, firstNames.length - 1)];
+  const lastName = lastNames[randInt(0, lastNames.length - 1)];
+  return `${firstName} ${lastName}`;
+}
+
+const generateInitialSquad = (): { name: string, naturalPosition: PlayerPosition }[] => {
+  const squad = [];
+  for (let i = 0; i < SQUAD_SIZE; i++) {
+    squad.push({
+      name: generateRandomName(),
+      naturalPosition: playerPositions[randInt(0, playerPositions.length - 1)]
+    });
+  }
+  return squad;
+};
+
+
 export function RegistrationForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -92,10 +114,7 @@ export function RegistrationForm() {
       password: '',
       countryName: '',
       managerName: '',
-      squad: Array.from({ length: SQUAD_SIZE }, () => ({
-        name: '',
-        naturalPosition: 'MD',
-      })),
+      squad: generateInitialSquad(),
       captainIndex: 0,
     },
   });
@@ -120,17 +139,18 @@ export function RegistrationForm() {
 
   const addPlayer = () => {
     if (fields.length < SQUAD_SIZE) {
-      append({ name: '', naturalPosition: 'MD' });
+      append({ name: generateRandomName(), naturalPosition: playerPositions[randInt(0, playerPositions.length - 1)] });
     }
   };
 
   const generateRatings = (naturalPosition: PlayerPosition) => {
     const ratings: any = {};
     playerPositions.forEach((pos) => {
+      const key = `${pos.toLowerCase()}Rating`;
       if (pos === naturalPosition) {
-        ratings[`${pos.toLowerCase()}Rating`] = Math.floor(Math.random() * 51) + 50;
+        ratings[key] = randInt(50, 100);
       } else {
-        ratings[`${pos.toLowerCase()}Rating`] = Math.floor(Math.random() * 51);
+        ratings[key] = randInt(0, 50);
       }
     });
     return ratings;
