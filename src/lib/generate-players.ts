@@ -37,26 +37,43 @@ const generateRatings = (naturalPosition: PlayerPosition) => {
 };
 
 /**
- * Generates a squad of 23 players with random names, positions, and ratings.
+ * Generates a balanced squad of 23 players with a fixed number of players for each position.
  * NOTE: This function uses client-side APIs (`crypto.randomUUID`, `Math.random`) and should only be run on the client.
  * @returns An array of 23 player objects.
  */
 export function generatePlayers() {
-  const arr: any[] = [];
-  for (let i = 0; i < 23; i++) {
-    const naturalPosition =
-      playerPositions[Math.floor(Math.random() * playerPositions.length)];
-    const ratings = generateRatings(naturalPosition);
-    arr.push({
-      id: crypto.randomUUID(),
-      name: `Player ${i + 1}`,
-      naturalPosition: naturalPosition,
-      ...ratings,
-      isCaptain: false,
-    });
+  const squad: any[] = [];
+  const squadComposition = [
+    { position: 'GK', count: 3 },
+    { position: 'DF', count: 8 },
+    { position: 'MD', count: 8 },
+    { position: 'AT', count: 4 },
+  ];
+
+  let playerNumber = 1;
+  squadComposition.forEach(comp => {
+    for (let i = 0; i < comp.count; i++) {
+        const naturalPosition = comp.position as PlayerPosition;
+        const ratings = generateRatings(naturalPosition);
+        squad.push({
+            id: crypto.randomUUID(),
+            name: `Player ${playerNumber++}`,
+            naturalPosition: naturalPosition,
+            ...ratings,
+            isCaptain: false,
+        });
+    }
+  });
+
+  // Shuffle the squad to randomize player order in the list
+  for (let i = squad.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [squad[i], squad[j]] = [squad[j], squad[i]];
   }
-  return arr;
+
+  return squad;
 }
+
 
 /**
  * Computes the average rating of a team based on players' natural positions.
