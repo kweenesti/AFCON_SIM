@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import {
   LogOut,
   Swords,
   UserCog,
+  CalendarDays,
 } from 'lucide-react';
 
 import {
@@ -41,19 +43,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isRegistered = !isUserLoading && !!user;
 
-  const navItems =
-    isRegistered && user?.profile?.role === 'admin'
-      ? [
-          { href: '/dashboard', label: 'Dashboard', icon: Home },
-          { href: '/matches', label: 'Matches', icon: Swords },
-          { href: '/admin', label: 'Admin', icon: UserCog },
-        ]
-      : isRegistered
-      ? [
-          { href: '/dashboard', label: 'Dashboard', icon: Home },
-          { href: '/matches', label: 'Matches', icon: Swords },
-        ]
-      : [{ href: '/', label: 'Register', icon: FilePlus }];
+  let navItems = [{ href: '/', label: 'Register', icon: FilePlus }];
+
+  if (isRegistered) {
+    if (user?.profile?.role === 'admin') {
+      navItems = [
+        { href: '/dashboard', label: 'Dashboard', icon: Home },
+        { href: '/matches', label: 'Matches', icon: Swords },
+        { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
+        { href: '/admin', label: 'Admin', icon: UserCog },
+      ];
+    } else {
+      navItems = [
+        { href: '/dashboard', label: 'Dashboard', icon: Home },
+        { href: '/matches', label: 'Matches', icon: Swords },
+      ];
+    }
+  }
 
   return (
     <SidebarProvider>

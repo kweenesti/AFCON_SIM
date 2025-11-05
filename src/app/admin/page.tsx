@@ -15,11 +15,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
 import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where, getDocs } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { List, PlayCircle, Swords, Zap } from 'lucide-react';
+import { List, PlayCircle, Swords, Zap, UserCog } from 'lucide-react';
 import { simulateMatchAction } from './actions';
+import { AdminRoleForm } from './admin-role-form';
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -296,6 +297,22 @@ export default function AdminPage() {
               Manage the tournament and view registered teams.
             </p>
           </div>
+
+          <Card>
+             <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog />
+                Admin Actions
+              </CardTitle>
+              <CardDescription>
+                Grant administrative privileges to other users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <AdminRoleForm />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

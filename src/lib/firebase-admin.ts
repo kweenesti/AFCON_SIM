@@ -1,3 +1,4 @@
+
 'use server';
 import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 
@@ -19,8 +20,8 @@ const serviceAccount = {
 
 export async function initializeAdminApp(): Promise<App> {
     const apps = getApps();
-    if (apps.length > 0) {
-        return apps[0];
+    if (apps.length > 0 && apps.find(app => app?.name === '[DEFAULT]')) {
+        return apps.find(app => app?.name === '[DEFAULT]')!;
     }
     
     // In a real environment, you'd use GOOGLE_APPLICATION_CREDENTIALS

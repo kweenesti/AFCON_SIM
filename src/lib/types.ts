@@ -1,3 +1,4 @@
+
 export type PlayerPosition = 'GK' | 'DF' | 'MD' | 'AT';
 
 export const playerPositions: PlayerPosition[] = ['GK', 'DF', 'MD', 'AT'];
@@ -35,7 +36,7 @@ export interface UserProfile {
 }
 
 export interface Tournament {
-  id: string;
+  id:string;
   started: boolean;
   teams: string[];
   stage: 'quarter-finals' | 'semi-finals' | 'final';

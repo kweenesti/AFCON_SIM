@@ -1,9 +1,11 @@
+
 'use server';
 
-import { getFirestore, collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc } from 'firebase-admin/firestore';
+import { getFirestore, collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
 import type { Federation, Player, Team } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
+import { getAuth } from 'firebase-admin/auth';
 
 
 export async function grantAdminRole(prevState: any, formData: FormData) {
@@ -16,22 +18,16 @@ export async function grantAdminRole(prevState: any, formData: FormData) {
   try {
     const adminApp = await initializeAdminApp();
     const firestore = getFirestore(adminApp);
-    const usersRef = collection(firestore, 'users');
-    const q = query(usersRef, where('email', '==', email));
-
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      return { message: `User with email ${email} not found.`, success: false };
+    const auth = getAuth(adminApp);
+    
+    const userRecord = await auth.getUserByEmail(email);
+    
+    if (!userRecord) {
+        return { message: `User with email ${email} not found.`, success: false };
     }
 
-    const batch = writeBatch(firestore);
-    querySnapshot.forEach((doc) => {
-      console.log(`Updating role for user: ${doc.id}`);
-      batch.update(doc.ref, { role: 'admin' });
-    });
-
-    await batch.commit();
+    const userDocRef = doc(firestore, 'users', userRecord.uid);
+    await updateDoc(userDocRef, { role: 'admin' });
 
     return { message: `Successfully granted admin role to ${email}.`, success: true };
   } catch (error: any) {

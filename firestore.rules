@@ -1,3 +1,4 @@
+
 /**
  * @file Firestore Security Rules for African Nations Tournament Simulator
  * @description This ruleset enforces a user-ownership model for federations and their associated player data, while allowing public read access to country data.
