@@ -64,7 +64,9 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
       allow get: if isSignedIn() && isOwner(userId);
-      allow list, create, update, delete: if false;
+      // Admin can update any user's role
+      allow update: if isAdmin();
+      allow list, create, delete: if false;
     }
 
     /**
@@ -144,3 +146,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
