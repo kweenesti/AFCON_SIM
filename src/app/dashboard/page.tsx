@@ -18,15 +18,13 @@ import { useToast } from '@/hooks/use-toast';
 import { generatePlayers, computeTeamRating } from '@/lib/generate-players';
 import { SquadTable } from '@/components/team/squad-table';
 import {
-  useDoc,
   useCollection,
   useMemoFirebase,
   useFirestore,
-  setDocumentNonBlocking,
   updateDocumentNonBlocking,
   useUser,
 } from '@/firebase';
-import { doc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
@@ -112,9 +110,14 @@ export default function DashboardPage() {
       'players'
     );
 
+    // First, retrieve all existing player documents to delete them
+    const existingPlayersSnapshot = await getDocs(playersCollectionRef);
+    existingPlayersSnapshot.forEach(playerDoc => {
+        batch.delete(playerDoc.ref);
+    });
+
     // Set/overwrite each player document in the new squad
     squad.forEach((player) => {
-      // Important: Ensure player.id is stable from generatePlayers
       const playerDocRef = doc(playersCollectionRef, player.id);
       batch.set(playerDocRef, { ...player, federationId: federation.id });
     });
@@ -141,7 +144,21 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user || !federation) return null;
+  if (!user || (federations && federations.length === 0 && !isFederationsLoading)) {
+     // This case handles when the query has run and returned no federations.
+     // It could mean the federation document hasn't been created yet.
+     // You might want to redirect to a setup page or show a specific message.
+     // For now, we'll just prevent a crash.
+     return (
+        <AppShell>
+            <main className="container mx-auto p-4 md:p-8">
+                 <p>Federation data not found. Please re-register or contact support.</p>
+            </main>
+        </AppShell>
+     )
+  }
+
+  if (!federation) return null;
 
   return (
     <AppShell>
