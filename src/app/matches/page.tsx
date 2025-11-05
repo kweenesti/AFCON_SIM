@@ -32,6 +32,41 @@ export default function MatchesPage() {
 
     const isLoading = isTournamentLoading || areMatchesLoading;
 
+    const quarterFinals = useMemo(() => matches?.filter(m => m.stage === 'quarter-finals') || [], [matches]);
+    const semiFinals = useMemo(() => matches?.filter(m => m.stage === 'semi-finals') || [], [matches]);
+    const final = useMemo(() => matches?.filter(m => m.stage === 'final') || [], [matches]);
+
+    const renderMatchList = (matchList: Match[], title: string) => (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Trophy />
+                    {title}
+                </CardTitle>
+                {matchList.length === 0 && <CardDescription>Matches have not been generated for this stage yet.</CardDescription>}
+            </CardHeader>
+            {matchList.length > 0 && (
+                <CardContent>
+                    <ul className="space-y-2">
+                        {matchList.map(match => (
+                            <li key={match.id}>
+                                <Link href={`/match/${match.id}`} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                                    <span className="font-medium text-lg text-right w-2/5 truncate">{match.homeTeamName}</span>
+                                    {match.played ? (
+                                        <span className="font-bold text-2xl">{match.homeScore} - {match.awayScore}</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">vs</span>
+                                    )}
+                                    <span className="font-medium text-lg text-left w-2/5 truncate">{match.awayTeamName}</span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </CardContent>
+            )}
+        </Card>
+    );
+
     return (
         <AppShell>
              <main className="container mx-auto p-4 md:p-8">
@@ -46,26 +81,35 @@ export default function MatchesPage() {
                     </div>
 
                     {isLoading && (
-                        <Card>
-                            <CardHeader>
-                                <Skeleton className="h-8 w-1/2" />
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
-                            </CardContent>
-                        </Card>
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <Skeleton className="h-8 w-1/3" />
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <Skeleton className="h-12 w-full" />
+                                    <Skeleton className="h-12 w-full" />
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <Skeleton className="h-8 w-1/3" />
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <Skeleton className="h-12 w-full" />
+                                </CardContent>
+                            </Card>
+                        </div>
                     )}
 
-                    {!isLoading && (!matches || matches.length === 0) && (
-                        <Card>
+                    {!isLoading && !tournament && (
+                         <Card>
                              <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Trophy />
-                                    Quarter-Finals
+                                    No Tournament Found
                                 </CardTitle>
-                                <CardDescription>No matches have been generated for this tournament yet.</CardDescription>
+                                <CardDescription>An administrator has not started a tournament yet.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-center text-muted-foreground">Check back soon!</p>
@@ -73,33 +117,12 @@ export default function MatchesPage() {
                         </Card>
                     )}
 
-                    {matches && matches.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Trophy />
-                                    {matches[0].stage.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                </CardTitle>
-                                <CardDescription>Click a match to see more details.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className="space-y-2">
-                                {matches.map(match => (
-                                    <li key={match.id}>
-                                        <Link href={`/match/${match.id}`} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                                            <span className="font-medium text-lg">{match.homeTeamName}</span>
-                                            {match.played ? (
-                                                <span className="font-bold text-2xl">{match.homeScore} - {match.awayScore}</span>
-                                            ) : (
-                                                <span className="text-muted-foreground">vs</span>
-                                            )}
-                                            <span className="font-medium text-lg">{match.awayTeamName}</span>
-                                        </Link>
-                                    </li>
-                                ))}
-                                </ul>
-                            </CardContent>
-                        </Card>
+                    {!isLoading && tournament && (
+                       <div className="space-y-6">
+                            {renderMatchList(final, 'Final')}
+                            {renderMatchList(semiFinals, 'Semi-Finals')}
+                            {renderMatchList(quarterFinals, 'Quarter-Finals')}
+                       </div>
                     )}
                 </div>
             </main>

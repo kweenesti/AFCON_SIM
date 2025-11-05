@@ -1,9 +1,9 @@
 
 'use server';
 
-import { getFirestore, collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, DocumentData, collectionGroup } from 'firebase/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
-import type { Federation, Player, Team } from '@/lib/types';
+import type { Federation, Match, Player, Team, Tournament } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
 
@@ -66,12 +66,41 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
             homeScore: result.homeScore,
             awayScore: result.awayScore,
             winnerId: result.winnerId,
-            played: true
+            played: true,
+            goals: result.goals,
         });
 
         return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
         console.error('Error simulating match:', error);
         return { success: false, message: error.message || 'An unexpected error occurred.' };
+    }
+}
+
+export async function restartTournamentAction(tournamentId: string | undefined): Promise<{ success: boolean; message: string }> {
+    try {
+        const adminApp = await initializeAdminApp();
+        const firestore = getFirestore(adminApp);
+        const batch = writeBatch(firestore);
+
+        // 1. Delete all matches for the tournament
+        const matchesQuery = query(collection(firestore, 'matches'), where('tournamentId', '==', tournamentId));
+        const matchesSnapshot = await getDocs(matchesQuery);
+        matchesSnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // 2. Delete the tournament document itself
+        if (tournamentId) {
+             const tournamentRef = doc(firestore, 'tournaments', tournamentId);
+             batch.delete(tournamentRef);
+        }
+
+        await batch.commit();
+
+        return { success: true, message: 'Tournament has been successfully restarted.' };
+    } catch (error: any) {
+        console.error('Error restarting tournament:', error);
+        return { success: false, message: error.message || 'Could not restart the tournament.' };
     }
 }

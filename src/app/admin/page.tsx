@@ -18,9 +18,20 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBl
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { List, PlayCircle, Swords, Zap, UserCog } from 'lucide-react';
-import { simulateMatchAction } from './actions';
+import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw } from 'lucide-react';
+import { simulateMatchAction, restartTournamentAction } from './actions';
 import { AdminRoleForm } from './admin-role-form';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -42,7 +53,7 @@ export default function AdminPage() {
     () => user?.profile?.role === 'admin' ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null,
     [firestore, user]
   );
-  const { data: tournaments, isLoading: isTournamentLoading } = useCollection<Tournament>(latestTournamentQuery);
+  const { data: tournaments, isLoading: isTournamentLoading, error: tournamentError } = useCollection<Tournament>(latestTournamentQuery);
   const tournament = tournaments?.[0];
 
    // Fetch matches for the current tournament
@@ -254,6 +265,26 @@ export default function AdminPage() {
     });
   };
 
+  const handleRestartTournament = () => {
+    startTransition(async () => {
+        const result = await restartTournamentAction(tournament?.id);
+        if (result.success) {
+            toast({
+                title: 'Tournament Restarted',
+                description: 'All matches have been cleared.',
+            });
+            setMessage('Tournament has been restarted.');
+        } else {
+            toast({
+                title: 'Error',
+                description: result.message,
+                variant: 'destructive',
+            });
+            setMessage(result.message);
+        }
+    });
+  };
+
 
   const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
 
@@ -346,24 +377,48 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-start gap-4">
-               <Button onClick={handleStartTournament} disabled={!canStartTournament} variant="secondary">
-                <PlayCircle className="mr-2" />
-                Start Tournament (8 teams required)
-              </Button>
-              <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches} variant="secondary">
-                <Swords className="mr-2" />
-                Generate Quarter-Finals
-              </Button>
-              <Button onClick={generateSemiFinals} disabled={!canGenerateSemis} variant="secondary">
-                <Swords className="mr-2" />
-                Generate Semi-Finals
-              </Button>
-              <Button onClick={generateFinal} disabled={!canGenerateFinal} variant="secondary">
-                <Swords className="mr-2" />
-                Generate Final
-              </Button>
+              <div className="flex flex-wrap gap-4">
+                <Button onClick={handleStartTournament} disabled={!canStartTournament || isPending} variant="secondary">
+                  <PlayCircle className="mr-2" />
+                  Start Tournament (8 teams required)
+                </Button>
+                <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches || isPending} variant="secondary">
+                  <Swords className="mr-2" />
+                  Generate Quarter-Finals
+                </Button>
+                <Button onClick={generateSemiFinals} disabled={!canGenerateSemis || isPending} variant="secondary">
+                  <Swords className="mr-2" />
+                  Generate Semi-Finals
+                </Button>
+                <Button onClick={generateFinal} disabled={!canGenerateFinal || isPending} variant="secondary">
+                  <Swords className="mr-2" />
+                  Generate Final
+                </Button>
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={!hasTournamentStarted || isPending}>
+                      <RefreshCw className="mr-2" />
+                      Restart Tournament
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete all current tournament matches and reset the tournament state.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleRestartTournament}>
+                        Confirm Restart
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
 
-              {message && <p className={`text-sm ${message.includes('Need') ? 'text-destructive' : 'text-primary'}`}>{message}</p>}
+              {message && <p className={`mt-4 text-sm ${message.includes('Need') || message.includes('Could not') ? 'text-destructive' : 'text-primary'}`}>{message}</p>}
             </CardContent>
           </Card>
 
@@ -376,14 +431,14 @@ export default function AdminPage() {
                 <ul className="space-y-2">
                   {matches.map(match => (
                     <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
-                       <Link href={`/match/${match.id}`} className="flex-1 flex justify-between items-center">
-                         <span className="font-medium">{match.homeTeamName}</span>
+                       <Link href={`/match/${match.id}`} className="flex-1 grid grid-cols-3 items-center text-center">
+                         <span className="font-medium text-right">{match.homeTeamName}</span>
                           {match.played ? (
                             <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
                           ) : (
                             <span className="text-muted-foreground">vs</span>
                           )}
-                         <span className="font-medium">{match.awayTeamName}</span>
+                         <span className="font-medium text-left">{match.awayTeamName}</span>
                        </Link>
                        {!match.played && (
                          <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending} className="ml-4">

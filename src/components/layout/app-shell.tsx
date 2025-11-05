@@ -11,6 +11,7 @@ import {
   Swords,
   UserCog,
   CalendarDays,
+  Trophy
 } from 'lucide-react';
 
 import {
@@ -43,22 +44,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isRegistered = !isUserLoading && !!user;
 
-  let navItems = [{ href: '/', label: 'Register', icon: FilePlus }];
+  // Base navigation for all users (including logged-out)
+  let navItems = [
+    { href: '/', label: 'Register', icon: FilePlus },
+    { href: '/matches', label: 'Matches', icon: Swords },
+    { href: '/tournament', label: 'Tournament', icon: Trophy },
+  ];
 
   if (isRegistered) {
     if (user?.profile?.role === 'admin') {
       navItems = [
         { href: '/dashboard', label: 'Dashboard', icon: Home },
         { href: '/matches', label: 'Matches', icon: Swords },
+        { href: '/tournament', label: 'Tournament', icon: Trophy },
         { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
         { href: '/admin', label: 'Admin', icon: UserCog },
       ];
-    } else {
+    } else { // Federation user
       navItems = [
         { href: '/dashboard', label: 'Dashboard', icon: Home },
         { href: '/matches', label: 'Matches', icon: Swords },
+        { href: '/tournament', label: 'Tournament', icon: Trophy },
       ];
     }
+  } else { // Logged-out user
+     navItems = [
+        { href: '/', label: 'Register', icon: FilePlus },
+        { href: '/matches', label: 'Matches', icon: Swords },
+        { href: '/tournament', label: 'Tournament', icon: Trophy },
+      ];
   }
 
   return (

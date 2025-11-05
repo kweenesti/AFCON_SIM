@@ -2,43 +2,31 @@
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { Match, Team } from '@/lib/types';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Match, Goal } from '@/lib/types';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, Goal, Trophy, Users } from 'lucide-react';
-import { simulateMatchAction } from '@/app/admin/actions';
+import { Clock, Shield, Goal as GoalIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function MatchPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const firestore = useFirestore();
-
+  
   const matchRef = useMemoFirebase(
     () => (id ? doc(firestore, 'matches', id) : null),
     [firestore, id]
   );
   const { data: match, isLoading, error } = useDoc<Match>(matchRef);
-  
-  const [goals, setGoals] = useState<any[]>([]);
-
-  useEffect(() => {
-    async function getGoals() {
-        if (match?.played) {
-            // This is a workaround as the goals are not stored in the match document.
-            // In a real app, this should be part of the match data.
-            const result = await simulateMatchAction(match.id, match.homeTeamId, match.awayTeamId);
-            // This is not ideal as it re-simulates. We do it to get the goal scorers.
-            // A better approach is to store the goals in the match document.
-            // For this demo, we can't easily get the goals without re-simulating
-            // because the server action doesn't return them and we can't easily modify it.
-            // To get the goals without another simulation, we'd need to update the server action
-            // to store the goals array in the match document.
-        }
-    }
-    // For now, we will leave the goal scorers part out as we can't retrieve it.
-  }, [match]);
 
   if (isLoading) {
     return (
@@ -73,6 +61,8 @@ export default function MatchPage({ params }: { params: { id: string } }) {
     );
   }
 
+  const sortedGoals = match.goals?.sort((a, b) => a.minute - b.minute) || [];
+
   return (
     <AppShell>
       <main className="container mx-auto p-4 md:p-8">
@@ -93,7 +83,35 @@ export default function MatchPage({ params }: { params: { id: string } }) {
                             {match.homeScore} - {match.awayScore}
                         </CardTitle>
                     </CardHeader>
-                     {/* Goal scorers would be displayed here if available */}
+                    <CardContent>
+                        {sortedGoals.length > 0 && (
+                            <>
+                                <h3 className="text-lg font-semibold mt-4 mb-2 flex items-center justify-center gap-2">
+                                    <GoalIcon /> Goal Scorers
+                                </h3>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="text-center">Minute</TableHead>
+                                            <TableHead>Player</TableHead>
+                                            <TableHead className="text-right">Team</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedGoals.map((goal: Goal, index: number) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="text-center font-mono">{goal.minute}'</TableCell>
+                                                <TableCell>{goal.playerName}</TableCell>
+                                                <TableCell className="text-right">
+                                                    {goal.teamId === match.homeTeamId ? match.homeTeamName : match.awayTeamName}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                           </>
+                        )}
+                    </CardContent>
                 </Card>
             ) : (
                 <Card className="text-center">

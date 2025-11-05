@@ -1,4 +1,5 @@
 
+
 export type PlayerPosition = 'GK' | 'DF' | 'MD' | 'AT';
 
 export const playerPositions: PlayerPosition[] = ['GK', 'DF', 'MD', 'AT'];
@@ -43,6 +44,12 @@ export interface Tournament {
   createdAt: any; // Using 'any' for Firestore's serverTimestamp
 }
 
+export interface Goal {
+    playerName: string;
+    minute: number;
+    teamId: string;
+}
+
 export interface Match {
     id: string;
     tournamentId: string;
@@ -56,4 +63,5 @@ export interface Match {
     winnerId?: string;
     played: boolean;
     createdAt: any;
+    goals?: Goal[];
 }

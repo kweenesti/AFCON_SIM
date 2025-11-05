@@ -87,8 +87,8 @@ service cloud.firestore {
       }
       allow create: if isSignedIn() && isOwner(federationId);
       allow get: if isOwner(federationId);
-      // Allow admins to list all federations
-      allow list: if isAdmin();
+      // Allow admins and any signed in user to list all federations
+      allow list: if isSignedIn();
       allow update: if isExistingOwner(federationId);
       allow delete: if isExistingOwner(federationId);
     }
@@ -110,9 +110,10 @@ service cloud.firestore {
         return isOwner(federationId) && resource != null;
       }
 
+      // Allow admins and owners to list players
+      allow list: if isOwner(federationId) || isAdmin();
       allow create: if isSignedIn() && isOwner(federationId) && request.resource.data.federationId == federationId;
-      allow get: if isOwner(federationId);
-      allow list: if isOwner(federationId);
+      allow get: if isOwner(federationId) || isAdmin();
       allow update: if isExistingOwner(federationId) && request.resource.data.federationId == resource.data.federationId;
       allow delete: if isExistingOwner(federationId);
     }
@@ -122,29 +123,26 @@ service cloud.firestore {
      * @path /tournaments/{tournamentId}
      * @allow (create) - Only authenticated users with an 'admin' role can create new tournaments.
      * @allow (get, list) - All users can read tournament information.
-     * @deny (update, delete) - Tournaments cannot be updated or deleted through the client SDK.
-     * @principle Secures tournament creation to admins while allowing public read access.
+     * @allow (delete) - Only admins can delete tournaments (for restarting).
+     * @deny (update) - Tournaments cannot be updated through the client SDK.
+     * @principle Secures tournament creation and deletion to admins while allowing public read access.
      */
     match /tournaments/{tournamentId} {
-      allow create: if isAdmin();
+      allow create, delete: if isAdmin();
       allow get, list: if true;
-      allow update, delete: if false;
+      allow update: if false;
     }
 
     /**
      * @description Manages access to match data.
      * @path /matches/{matchId}
-     * @allow (create, update) - Only admins can create and update matches.
-     * @allow (get, list) - All authenticated users can read match data.
-     * @deny (delete) - Matches cannot be deleted.
-     * @principle Secures match management to admins.
+     * @allow (create, update, delete) - Only admins can create, update, and delete matches.
+     * @allow (get, list) - All users (including non-authenticated) can read match data.
+     * @principle Secures match management to admins while allowing public viewing.
      */
     match /matches/{matchId} {
-        allow create, update: if isAdmin();
-        allow get, list: if isSignedIn();
-        allow delete: if false;
+        allow create, update, delete: if isAdmin();
+        allow get, list: if true;
     }
   }
 }
-
-    
