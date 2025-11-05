@@ -4,12 +4,12 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, collectionGroup, getDocs } from 'firebase/firestore';
-import type { Match, Tournament, Goal } from '@/lib/types';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import type { Match, Tournament } from '@/lib/types';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Shield, Flame } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -44,12 +44,6 @@ function BracketNode({ match }: { match: Match | undefined }) {
   );
 }
 
-type GoalScorer = {
-    playerName: string;
-    goals: number;
-    teamName: string;
-};
-
 export default function TournamentPage() {
     const firestore = useFirestore();
 
@@ -66,13 +60,7 @@ export default function TournamentPage() {
     );
     const { data: matches, isLoading: areMatchesLoading } = useCollection<Match>(matchesQuery);
 
-    const federationsQuery = useMemoFirebase(
-        () => collection(firestore, 'federations'),
-        [firestore]
-    );
-    const {data: federations, isLoading: areFederationsLoading } = useCollection(federationsQuery);
-
-    const isLoading = isTournamentLoading || areMatchesLoading || areFederationsLoading;
+    const isLoading = isTournamentLoading || areMatchesLoading;
 
     const quarterFinals = useMemo(() => matches?.filter(m => m.stage === 'quarter-finals') || [], [matches]);
     const semiFinals = useMemo(() => matches?.filter(m => m.stage === 'semi-finals') || [], [matches]);
@@ -80,19 +68,20 @@ export default function TournamentPage() {
 
     const champion = useMemo(() => {
         if (final?.played) {
-            return federations?.find(f => f.id === final.winnerId);
+            return final.winnerId === final.homeTeamId ? final.homeTeamName : final.awayTeamName;
         }
         return null;
-    }, [final, federations]);
+    }, [final]);
 
     const topScorers = useMemo(() => {
         if (!matches) return [];
-        const scorerMap = new Map<string, { count: number; teamId: string }>();
+        const scorerMap = new Map<string, { count: number; teamName: string }>();
 
         matches.forEach(match => {
             if(match.goals) {
                 match.goals.forEach(goal => {
-                    const existing = scorerMap.get(goal.playerName) || { count: 0, teamId: goal.teamId };
+                    const teamName = goal.teamId === match.homeTeamId ? match.homeTeamName : match.awayTeamName;
+                    const existing = scorerMap.get(goal.playerName) || { count: 0, teamName: teamName };
                     scorerMap.set(goal.playerName, { ...existing, count: existing.count + 1 });
                 });
             }
@@ -102,12 +91,12 @@ export default function TournamentPage() {
             .map(([playerName, data]) => ({
                 playerName,
                 goals: data.count,
-                teamName: federations?.find(f => f.id === data.teamId)?.countryName || 'Unknown',
+                teamName: data.teamName,
             }))
             .sort((a, b) => b.goals - a.goals)
             .slice(0, 10);
 
-    }, [matches, federations]);
+    }, [matches]);
 
 
     return (
@@ -178,14 +167,16 @@ export default function TournamentPage() {
                                             <CardDescription className="text-amber-100">Congratulations to the winner!</CardDescription>
                                         </CardHeader>
                                         <CardContent className="text-center">
-                                            <p className="text-4xl font-bold">{champion.countryName}</p>
+                                            <p className="text-4xl font-bold">{champion}</p>
                                         </CardContent>
                                     </Card>
                                 )}
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="flex items-center gap-2"><Flame /> Top Goal Scorers</CardTitle>
+                                        <CardTitle className="flex items-center gap-2">
+                                            Top Goal Scorers
+                                        </CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <Table>
