@@ -61,10 +61,10 @@ export default function DashboardPage() {
   }, [federation, managerName]);
 
   useEffect(() => {
-    if (existingSquad && squad.length === 0) {
+    if (existingSquad) {
       setSquad(existingSquad);
     }
-  }, [existingSquad, squad]);
+  }, [existingSquad]);
 
   const teamRating = useMemo(() => computeTeamRating(squad), [squad]);
 
@@ -75,7 +75,9 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
-    const newSquad = generatePlayers();
+    if (!existingSquad) return;
+    // Pass existing squad to preserve IDs
+    const newSquad = generatePlayers(existingSquad);
     setSquad(newSquad);
     const rating = computeTeamRating(newSquad);
     toast({
@@ -108,13 +110,7 @@ export default function DashboardPage() {
       'players'
     );
 
-    // First, delete existing players
-    (existingSquad || []).forEach((player) => {
-      const playerDocRef = doc(playersCollectionRef, player.id);
-      batch.delete(playerDocRef);
-    });
-
-    // Then, add the new players
+    // Set/overwrite each player document in the new squad
     squad.forEach((player) => {
       const playerDocRef = doc(playersCollectionRef, player.id);
       batch.set(playerDocRef, { ...player, federationId: user.uid });

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { playerPositions, type PlayerPosition } from './types';
+import { playerPositions, type PlayerPosition, type Player } from './types';
 
 /**
  * Generates a random integer between min and max (inclusive).
@@ -38,11 +38,13 @@ const generateRatings = (naturalPosition: PlayerPosition) => {
 
 /**
  * Generates a balanced squad of 23 players with a fixed number of players for each position.
+ * It can optionally reuse existing player IDs and names.
  * NOTE: This function uses client-side APIs (`crypto.randomUUID`, `Math.random`) and should only be run on the client.
+ * @param existingSquad Optional. An array of existing players to reuse IDs and names from.
  * @returns An array of 23 player objects.
  */
-export function generatePlayers() {
-  const squad: any[] = [];
+export function generatePlayers(existingSquad?: Player[]): Player[] {
+  const squad: Player[] = [];
   const squadComposition = [
     { position: 'GK', count: 3 },
     { position: 'DF', count: 8 },
@@ -50,25 +52,43 @@ export function generatePlayers() {
     { position: 'AT', count: 4 },
   ];
 
-  let playerNumber = 1;
-  squadComposition.forEach(comp => {
-    for (let i = 0; i < comp.count; i++) {
-        const naturalPosition = comp.position as PlayerPosition;
+  let playerIndex = 0;
+  squadComposition.forEach(({ position, count }) => {
+    for (let i = 0; i < count; i++) {
+        const naturalPosition = position as PlayerPosition;
         const ratings = generateRatings(naturalPosition);
+        const existingPlayer = existingSquad ? existingSquad[playerIndex] : null;
+
         squad.push({
-            id: crypto.randomUUID(),
-            name: `Player ${playerNumber++}`,
+            id: existingPlayer?.id || crypto.randomUUID(),
+            federationId: existingPlayer?.federationId || '', // Will be overwritten
+            name: existingPlayer?.name || `Player ${playerIndex + 1}`,
             naturalPosition: naturalPosition,
             ...ratings,
-            isCaptain: false,
+            isCaptain: existingPlayer?.isCaptain || false, // Preserve captain status
         });
+        playerIndex++;
     }
   });
 
-  // Shuffle the squad to randomize player order in the list
+  // Simple shuffle of positions, but IDs and names are stable if existingSquad was provided
   for (let i = squad.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [squad[i], squad[j]] = [squad[j], squad[i]];
+    // Swap the generated parts (position, ratings) but keep id, name, etc.
+    const tempPos = squad[i].naturalPosition;
+    const tempRatings = { gkRating: squad[i].gkRating, dfRating: squad[i].dfRating, mdRating: squad[i].mdRating, atRating: squad[i].atRating };
+
+    squad[i].naturalPosition = squad[j].naturalPosition;
+    squad[i].gkRating = squad[j].gkRating;
+    squad[i].dfRating = squad[j].dfRating;
+    squad[i].mdRating = squad[j].mdRating;
+    squad[i].atRating = squad[j].atRating;
+
+    squad[j].naturalPosition = tempPos;
+    squad[j].gkRating = tempRatings.gkRating;
+    squad[j].dfRating = tempRatings.dfRating;
+    squad[j].mdRating = tempRatings.mdRating;
+    squad[j].atRating = tempRatings.atRating;
   }
 
   return squad;
