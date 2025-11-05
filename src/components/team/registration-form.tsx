@@ -98,6 +98,9 @@ const generateInitialSquad = (): { name: string, naturalPosition: PlayerPosition
   return squad;
 };
 
+// Generate the initial squad data only once.
+const initialSquad = generateInitialSquad();
+
 
 export function RegistrationForm() {
   const router = useRouter();
@@ -114,7 +117,7 @@ export function RegistrationForm() {
       password: '',
       countryName: '',
       managerName: '',
-      squad: generateInitialSquad(),
+      squad: initialSquad, // Use the pre-generated constant squad data
       captainIndex: 0,
     },
   });
@@ -452,3 +455,5 @@ export function RegistrationForm() {
     </Form>
   );
 }
+
+    
