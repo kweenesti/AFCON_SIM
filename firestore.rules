@@ -86,9 +86,9 @@ service cloud.firestore {
         return isOwner(federationId) && resource != null;
       }
       allow create: if isSignedIn() && isOwner(federationId);
-      allow get: if isOwner(federationId);
-      // Allow admins and any signed in user to list all federations
-      allow list: if isSignedIn();
+      allow get: if isOwner(federationId) || isAdmin();
+      // Allow admins to list all federations
+      allow list: if isAdmin();
       allow update: if isExistingOwner(federationId);
       allow delete: if isExistingOwner(federationId);
     }

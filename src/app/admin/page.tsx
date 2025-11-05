@@ -44,14 +44,14 @@ export default function AdminPage() {
   // Fetch all federations
   const federationsRef = useMemoFirebase(
     () => (user?.profile?.role === 'admin' ? collection(firestore, 'federations') : null),
-    [firestore, user]
+    [firestore, user?.profile?.role]
   );
   const { data: federations, isLoading: isFederationsLoading } = useCollection<Federation>(federationsRef);
 
   // Fetch the latest tournament
   const latestTournamentQuery = useMemoFirebase(
     () => user?.profile?.role === 'admin' ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null,
-    [firestore, user]
+    [firestore, user?.profile?.role]
   );
   const { data: tournaments, isLoading: isTournamentLoading, error: tournamentError } = useCollection<Tournament>(latestTournamentQuery);
   const tournament = tournaments?.[0];
@@ -288,7 +288,7 @@ export default function AdminPage() {
 
   const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
 
-  if (isLoading && !user) {
+  if (isUserLoading) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
@@ -355,7 +355,11 @@ export default function AdminPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {federations && federations.length > 0 ? (
+              {isFederationsLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+                </div>
+              ) : federations && federations.length > 0 ? (
                  <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {federations.map(fed => (
                         <li key={fed.id} className="p-4 border rounded-lg text-center bg-card-foreground/5">
