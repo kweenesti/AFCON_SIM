@@ -23,9 +23,10 @@ import {
   useMemoFirebase,
   useFirestore,
   setDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useUser,
 } from '@/firebase';
-import { doc, collection, writeBatch } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
@@ -36,17 +37,17 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  const federationRef = useMemoFirebase(
-    () => (user ? doc(firestore, 'federations', user.uid) : null),
+  const federationsQuery = useMemoFirebase(
+    () => user ? query(collection(firestore, 'federations'), where('representativeUid', '==', user.uid)) : null,
     [firestore, user]
   );
-  const { data: federation, isLoading: isFederationLoading } =
-    useDoc<Federation>(federationRef);
+  const { data: federations, isLoading: isFederationsLoading } = useCollection<Federation>(federationsQuery);
+  const federation = federations?.[0];
 
   const playersRef = useMemoFirebase(
     () =>
-      user ? collection(firestore, 'federations', user.uid, 'players') : null,
-    [firestore, user]
+      federation ? collection(firestore, 'federations', federation.id, 'players') : null,
+    [firestore, federation]
   );
   const { data: existingSquad, isLoading: isSquadLoading } =
     useCollection<Player>(playersRef);
@@ -76,7 +77,6 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
-    // Pass existing squad to preserve IDs and names
     const newSquad = generatePlayers(squad);
     setSquad(newSquad);
     const rating = computeTeamRating(newSquad);
@@ -90,15 +90,17 @@ export default function DashboardPage() {
     if (!user || !federation || !firestore) {
       toast({
         title: 'Error',
-        description: 'You must be logged in.',
+        description: 'You must be logged in and part of a federation.',
         variant: 'destructive',
       });
       return;
     }
 
+    const federationRef = doc(firestore, 'federations', federation.id);
+    
     // 1. Update manager name in federation document
-    if (federationRef && managerName !== federation.managerName) {
-        setDocumentNonBlocking(federationRef, { managerName }, { merge: true });
+    if (managerName !== federation.managerName) {
+        updateDocumentNonBlocking(federationRef, { managerName });
     }
 
     // 2. Overwrite the players subcollection with the new squad
@@ -106,14 +108,15 @@ export default function DashboardPage() {
     const playersCollectionRef = collection(
       firestore,
       'federations',
-      user.uid,
+      federation.id,
       'players'
     );
 
     // Set/overwrite each player document in the new squad
     squad.forEach((player) => {
+      // Important: Ensure player.id is stable from generatePlayers
       const playerDocRef = doc(playersCollectionRef, player.id);
-      batch.set(playerDocRef, { ...player, federationId: user.uid });
+      batch.set(playerDocRef, { ...player, federationId: federation.id });
     });
 
     await batch.commit();
@@ -124,7 +127,7 @@ export default function DashboardPage() {
     });
   };
 
-  const isLoading = isUserLoading || isFederationLoading || isSquadLoading;
+  const isLoading = isUserLoading || isFederationsLoading || (federation && isSquadLoading);
 
   if (isLoading && !federation) {
     return (

@@ -70,35 +70,29 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces user-ownership for federation data. Only the authenticated user with a matching federationId can read, create, update, or delete their own federation data.
+     * @description Enforces user-ownership for federation data based on a `representativeUid` field.
      * @path /federations/{federationId}
-     * @allow (create) - Authenticated user 'user_abc' can create a federation with ID 'user_abc'.
-     * @allow (get, update, delete) - Authenticated user 'user_abc' can read, update, or delete their federation with ID 'user_abc'.
-     * @deny (create, get, update, delete) - Authenticated user 'user_xyz' cannot create, read, update, or delete federation data for 'user_abc'.
-     * @principle Enforces document ownership for writes.
+     * @allow (get) - Anyone can read federation data.
+     * @allow (list) - Only admins can list all federations.
+     * @allow (create) - An authenticated user can create a federation if their UID matches the `representativeUid` in the new document.
+     * @allow (update, delete) - The user whose UID matches the `representativeUid` can update or delete the document.
+     * @principle Enforces document ownership for writes using an internal UID field.
      */
     match /federations/{federationId} {
-      function isOwner(federationId) {
-        return request.auth.uid == federationId;
-      }
-
-      function isExistingOwner(federationId) {
-        return isOwner(federationId) && resource != null;
-      }
-      allow create: if isSignedIn() && isOwner(federationId);
       allow get: if true;
       allow list: if isAdmin();
-      allow update: if isExistingOwner(federationId);
-      allow delete: if isExistingOwner(federationId);
+      allow create: if request.auth != null && request.resource.data.representativeUid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.representativeUid == request.auth.uid;
     }
 
     /**
-     * @description Enforces user-ownership for player data nested under federations. Only the owning federation can create, read, update, or delete player data. The 'federationId' is denormalized into each Player document to avoid requiring a get() call to the parent document.
+     * @description Enforces user-ownership for player data nested under federations. The federation ID in the path must match the authenticated user's UID.
      * @path /federations/{federationId}/players/{playerId}
-     * @allow (create) - Authenticated user 'user_abc' can create a player under federation 'user_abc' if the player document's federationId also equals 'user_abc'.
-     * @allow (get, list, update, delete) - Authenticated user 'user_abc' can read, list, update, or delete players under federation 'user_abc'.
-     * @deny (create, get, list, update, delete) - Authenticated user 'user_xyz' cannot create, read, update, or delete player data under federation 'user_abc'.
-     * @principle Enforces document ownership for writes, validates relational integrity on create, and prevents modification of the federationId.
+     * @allow (list, get) - The owning federation representative or an admin can list and get players.
+     * @allow (create) - The owner can create a player if the new player's `federationId` matches their UID.
+     * @allow (update) - The owner can update a player, but cannot change the `federationId`.
+     * @allow (delete) - The owner can delete a player.
+     * @principle Enforces hierarchical ownership and validates relational integrity.
      */
     match /federations/{federationId}/players/{playerId} {
       function isOwner(federationId) {
@@ -109,7 +103,6 @@ service cloud.firestore {
         return isOwner(federationId) && resource != null;
       }
 
-      // Allow admins and owners to list players
       allow list: if isOwner(federationId) || isAdmin();
       allow create: if isSignedIn() && isOwner(federationId) && request.resource.data.federationId == federationId;
       allow get: if isOwner(federationId) || isAdmin();

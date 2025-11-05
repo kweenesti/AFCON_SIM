@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
-import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -86,13 +86,15 @@ export default function AdminPage() {
     if (!firestore) return;
 
     const tournamentRef = doc(collection(firestore, "tournaments"));
-    setDocumentNonBlocking(tournamentRef, {
+    const newTournament = {
         id: tournamentRef.id,
         started: true,
         teams: federations.map(f => f.id),
         stage: 'quarter-finals',
         createdAt: serverTimestamp(),
-    }, {});
+    };
+    
+    addDocumentNonBlocking(collection(firestore, 'tournaments'), newTournament);
 
     setMessage('Tournament created successfully!');
     toast({

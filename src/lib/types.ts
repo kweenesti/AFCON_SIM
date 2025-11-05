@@ -18,6 +18,7 @@ export interface Player {
 
 export interface Federation {
   id: string;
+  representativeUid: string;
   representativeName: string;
   representativeEmail: string;
   countryId: string;

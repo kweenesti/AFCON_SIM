@@ -169,15 +169,18 @@ export function RegistrationForm() {
       const user = userCredential.user;
 
       if (user) {
+        // Create federation doc with a random ID now.
+        const federationRef = doc(collection(firestore, 'federations'));
+
         const federationData: Omit<Federation, 'id'> = {
+          representativeUid: user.uid, // Add owner UID
           representativeName: data.representativeName,
           representativeEmail: data.representativeEmail,
-          countryId: data.countryName, // Assuming country name is used as ID for simplicity
+          countryId: data.countryName,
           countryName: data.countryName,
           managerName: data.managerName,
         };
-
-        const federationRef = doc(firestore, 'federations', user.uid);
+        
         setDocumentNonBlocking(federationRef, federationData, { merge: true });
 
         const userProfileRef = doc(firestore, 'users', user.uid);
@@ -191,13 +194,13 @@ export function RegistrationForm() {
         const playersCollectionRef = collection(
           firestore,
           'federations',
-          user.uid,
+          federationRef.id, // Use the new random federation ID
           'players'
         );
 
         data.squad.forEach((p, index) => {
           const playerData: Omit<Player, 'id'> = {
-            federationId: user.uid,
+            federationId: federationRef.id,
             name: p.name,
             naturalPosition: p.naturalPosition,
             isCaptain: index === data.captainIndex,
@@ -455,5 +458,3 @@ export function RegistrationForm() {
     </Form>
   );
 }
-
-    
