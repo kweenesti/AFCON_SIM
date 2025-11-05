@@ -166,7 +166,7 @@ export default function DashboardPage() {
                     onChange={(e) => setManagerName(e.target.value)}
                   />
                 </div>
-                <Button onClick={handleGenerateSquad}>
+                <Button onClick={handleGenerateSquad} variant="accent">
                   <Sparkles className="mr-2" />
                   Generate New Squad
                 </Button>
