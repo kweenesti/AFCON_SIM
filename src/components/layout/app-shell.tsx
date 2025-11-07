@@ -65,21 +65,25 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const isAdmin = user.profile?.role === 'admin';
     const isFederation = user.profile?.role === 'federation';
 
-    // If logged in, redirect away from login/register
     if (pathname === '/login' || pathname === '/register') {
         router.replace(isAdmin ? '/admin' : '/dashboard');
         return;
     }
     
-    // If admin is trying to access federation dashboard
-    if (isAdmin && pathname.startsWith('/dashboard')) {
-        router.replace('/admin');
+    if (isAdmin) {
+        const adminPages = ['/admin', '/schedule', '/matches', '/tournament'];
+        const isAllowedAdminPage = adminPages.some(page => pathname.startsWith(page));
+
+        if (pathname.startsWith('/dashboard') || (!isAllowedAdminPage && !isPublicPage)) {
+            router.replace('/admin');
+        }
         return;
     }
     
-    // If federation user is trying to access admin pages
-    if (isFederation && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
-        router.replace('/dashboard');
+    if (isFederation) {
+        if (pathname.startsWith('/admin') || pathname.startsWith('/schedule')) {
+            router.replace('/dashboard');
+        }
         return;
     }
 
