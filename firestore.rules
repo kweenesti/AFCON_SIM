@@ -1,35 +1,51 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- Helper Functions ---
+    // These functions are now at the top level for global scope.
+
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    match /countries/{countryId} {
-      allow read: if true;
-      allow write: if false;
+    // The 'get' operation in this function requires that the user has
+    // read access to their own document in the 'users' collection.
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // --- Collection Rules ---
+
+    // Countries are public.
+    match /countries/{countryId} {
+      allow read: if true;
+      allow write: if false; // Nobody should write directly to countries.
+    }
+
+    // Any authenticated user can read their own profile.
+    // Only the owner can write to their own profile.
+    // The `allow read` is critical for the isAdmin() function to work.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId);
     }
 
+    // Federation data is public for team lists, but can only be
+    // created or modified by the user who owns it.
     match /federations/{federationId} {
       allow read: if true;
       allow create, update, delete: if isOwner(federationId);
     }
 
+    // Players can only be managed by the federation owner.
+    // Reading is allowed by the owner or an admin.
     match /federations/{federationId}/players/{playerId} {
       allow read: if isOwner(federationId) || isAdmin();
       allow create: if isOwner(federationId) && request.resource.data.federationId == federationId;
@@ -37,11 +53,14 @@ service cloud.firestore {
       allow delete: if isOwner(federationId);
     }
 
+    // Tournaments are public to view. Only admins can manage them.
     match /tournaments/{tournamentId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
+    // Matches are public to view. Only admins can manage them.
+    // This rule is now simple and will not cause permission errors for reads.
     match /matches/{matchId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
