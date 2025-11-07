@@ -2,13 +2,9 @@
 'use server';
 import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 
-// This is a mock service account key. In a real application, you would
-// download this from your Firebase project settings and store it securely.
 const serviceAccount = {
   "type": "service_account",
   "project_id": "studio-8231274621-6d57e",
-  // The private_key is now read from an environment variable.
-  // The replace call is crucial to handle the newline characters from the .env file.
   "private_key": process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   "client_email": "firebase-adminsdk-mock@studio-8231274621-6d57e.iam.gserviceaccount.com",
   "client_id": "mock_client_id",
@@ -25,8 +21,10 @@ export async function initializeAdminApp(): Promise<App> {
         return apps.find(app => app?.name === '[DEFAULT]')!;
     }
     
-    // In a real environment, you'd use GOOGLE_APPLICATION_CREDENTIALS
-    // but for this context, we explicitly use the service account object.
+    if (!serviceAccount.private_key) {
+        throw new Error('FIREBASE_PRIVATE_KEY is not set in the environment variables.');
+    }
+
     const app = initializeApp({
         credential: cert(serviceAccount)
     });

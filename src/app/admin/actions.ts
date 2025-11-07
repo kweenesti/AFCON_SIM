@@ -1,5 +1,6 @@
 
 'use server';
+import 'dotenv/config';
 
 import { getFirestore, collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, DocumentData, collectionGroup } from 'firebase/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
