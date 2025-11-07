@@ -1,33 +1,4 @@
 
-/**
- * @file Firestore Security Rules for African Nations Tournament Simulator
- * @description This ruleset enforces a user-ownership model for federations and their associated player data, while allowing public read access to country data.
- *
- * Data Structure:
- * - /countries/{countryId}: Publicly accessible data about countries.
- * - /users/{userId}: User profile data, readable by any authenticated user, writable only by the owning user.
- * - /federations/{federationId}: Federation data, accessible only to the authenticated user with the matching federationId.
- * - /federations/{federationId}/players/{playerId}: Player data nested under federations, accessible only to the owning federation.
- * - /tournaments/{tournamentId}: Tournament data. Can only be created by admins, but readable by all authenticated users.
- * - /matches/{matchId}: Match data. Can only be created/updated by admins, readable by all users.
- *
- * Key Security Decisions:
- * - Countries are publicly readable.
- * - User profiles are private and can only be written by the owner, but read by any authenticated user to check roles.
- * - Federations are owned by individual users; only the owner can create, read, update, or delete their federation data. Public can read individual documents.
- * - Players are owned by their parent federation; only the owning federation can create, read, update, or delete player data.
- * - Tournaments can only be created by admins, ensuring controlled tournament management.
- * - Matches can only be created and updated by admins, but are publicly readable.
- * - Authorization independence is achieved by denormalizing `federationId` into the `Player` documents.
- * - Data validation is limited to authorization-critical fields (e.g., `federationId` on Player creation).
- * - Listing of federations is allowed for any authenticated user.
- *
- * Denormalization for Authorization:
- * - The `Player` documents contain a denormalized `federationId` field, which matches the parent federation's document ID. This allows direct authorization checks without needing to perform additional `get()` calls.
- *
- * Structural Segregation:
- * - Public `Country` data is stored in a top-level collection, while private `User`, `Federation`, and `Player` data are stored in separate collections or hierarchical structures. This segregation simplifies access control and improves performance.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -40,95 +11,42 @@ service cloud.firestore {
         return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /**
-     * @description Allows anyone to read country data. No write access allowed.
-     * @path /countries/{countryId}
-     * @allow (get, list) - Any user can read country data.
-     * @deny (create, update, delete) - No one can create, update, or delete country data.
-     * @principle Allows public read access to country data.
-     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
     match /countries/{countryId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow read: if true;
+      allow write: if false;
     }
 
-    /**
-     * @description Enforces user-ownership for user profile data modification. Allows any authenticated user to read profiles.
-     * @path /users/{userId}
-     * @allow (read) - Any authenticated user can read any user profile. This is necessary for role checks.
-     * @allow (write) - An authenticated user can write to their own user profile.
-     * @principle Separates read and write access for flexibility and security.
-     */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow write: if isSignedIn() && isOwner(userId);
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
 
-    /**
-     * @description Enforces user-ownership for federation data based on the document ID matching the user's UID.
-     * @path /federations/{federationId}
-     * @allow (get) - Anyone can read individual federation data.
-     * @allow (list) - List is for authenticated users only.
-     * @allow (create) - An authenticated user can create a federation if their UID matches the document ID.
-     * @allow (update, delete) - The user whose UID matches the document ID can update or delete it.
-     * @principle Enforces document ownership for writes using the document ID, while allowing public reads of individual documents.
-     */
     match /federations/{federationId} {
-      allow get: if true;
-      allow list: if isSignedIn();
-      allow create: if request.auth != null && request.auth.uid == federationId;
-      allow update, delete: if request.auth != null && request.auth.uid == federationId;
+      allow read: if true;
+      allow create: if isOwner(federationId);
+      allow update, delete: if isOwner(federationId);
     }
 
-    /**
-     * @description Enforces user-ownership for player data nested under federations. The federation ID in the path must be the authenticated user's UID.
-     * @path /federations/{federationId}/players/{playerId}
-     * @allow (list, get) - The owning federation representative or an admin can list and get players.
-     * @allow (create) - The owner can create a player if the new player's `federationId` matches their UID.
-     * @allow (update) - The owner can update a player, but cannot change the `federationId`.
-     * @allow (delete) - The owner can delete a player.
-     * @principle Enforces hierarchical ownership and validates relational integrity.
-     */
     match /federations/{federationId}/players/{playerId} {
-       function isFederationOwner(federationId) {
-        return request.auth != null && request.auth.uid == federationId;
-      }
-      
-      allow list, get: if isFederationOwner(federationId) || isAdmin();
-      allow create: if isFederationOwner(federationId) && request.resource.data.federationId == federationId;
-      allow update: if isFederationOwner(federationId) && request.resource.data.federationId == resource.data.federationId;
-      allow delete: if isFederationOwner(federationId);
+      allow read: if isOwner(federationId) || isAdmin();
+      allow create: if isOwner(federationId) && request.resource.data.federationId == federationId;
+      allow update: if isOwner(federationId) && request.resource.data.federationId == resource.data.federationId;
+      allow delete: if isOwner(federationId);
     }
 
-    /**
-     * @description Manages access to tournament data.
-     * @path /tournaments/{tournamentId}
-     * @allow (create) - Only authenticated users with an 'admin' role can create new tournaments.
-     * @allow (get, list) - All authenticated users can read tournament information.
-     * @allow (delete) - Only admins can delete tournaments (for restarting).
-     * @deny (update) - Tournaments cannot be updated through the client SDK.
-     * @principle Secures tournament creation and deletion to admins while allowing public read access.
-     */
     match /tournaments/{tournamentId} {
+      allow read: if true;
       allow create, delete: if isAdmin();
-      allow get, list: if isSignedIn();
       allow update: if false;
     }
 
-    /**
-     * @description Manages access to match data.
-     * @path /matches/{matchId}
-     * @allow (create, update, delete) - Only admins can create, update, and delete matches.
-     * @allow (get, list) - All users (authenticated or not) can read match data.
-     * @principle Secures match management to admins while allowing public viewing.
-     */
     match /matches/{matchId} {
+        allow read: if true;
         allow create, update, delete: if isAdmin();
-        allow get, list: if true;
     }
   }
 }
