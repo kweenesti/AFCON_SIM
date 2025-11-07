@@ -12,6 +12,7 @@ import {
   UserCog,
   CalendarDays,
   Trophy,
+  LogIn,
 } from 'lucide-react';
 
 import {
@@ -43,6 +44,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.push('/');
     });
   };
+
+  const handleLogin = () => {
+    router.push('/login');
+  }
 
   if (isUserLoading) {
     return (
@@ -97,6 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Logged-out visitor
     navItems = [
       { href: '/', label: 'Register', icon: FilePlus },
+      { href: '/login', label: 'Sign In', icon: LogIn },
       { href: '/matches', label: 'Matches', icon: Swords },
       { href: '/tournament', label: 'Tournament', icon: Trophy },
     ];
@@ -126,12 +132,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          {isRegistered && (
+          {isRegistered ? (
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleLogout} tooltip="Sign Out">
                   <LogOut />
                   <span>Sign Out</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          ) : (
+             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleLogin} tooltip="Sign In">
+                  <LogIn />
+                  <span>Sign In</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -141,9 +156,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-12 items-center justify-start gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
           <SidebarTrigger className="md:hidden" />
-          <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-            Get Help
-          </Button>
+           {isRegistered ? (
+             <Button variant="ghost" size="sm" asChild>
+                <Link href="/dashboard">Go to Dashboard</Link>
+             </Button>
+           ) : (
+             <Button variant="ghost" size="sm" onClick={handleLogin}>
+                Sign In
+             </Button>
+           )}
         </header>
         <div className="flex-1 overflow-auto">{children}</div>
       </SidebarInset>
