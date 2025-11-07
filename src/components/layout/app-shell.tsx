@@ -48,13 +48,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
+    // Wait for the auth state to be fully resolved
     if (isUserLoading) {
-      return; 
+      return;
     }
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
 
+    // If there is no user, and they are not on a public page, redirect to login.
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
@@ -62,42 +64,52 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // If a logged-in user is on a public auth page (login/register), redirect them away.
+    if (pathname === '/login' || pathname === '/register') {
+      if (user.profile?.role === 'admin') {
+        router.replace('/admin');
+      } else {
+        router.replace('/dashboard');
+      }
+      return;
+    }
+
     const isAdmin = user.profile?.role === 'admin';
     const isFederation = user.profile?.role === 'federation';
 
-    if (pathname === '/login' || pathname === '/register') {
-        router.replace(isAdmin ? '/admin' : '/dashboard');
-        return;
-    }
-    
+    // Role-based routing for authenticated users
     if (isAdmin) {
-        const adminPages = ['/admin', '/schedule', '/matches', '/tournament'];
-        const isAllowedAdminPage = adminPages.some(page => pathname.startsWith(page));
-
-        if (pathname.startsWith('/dashboard') || (!isAllowedAdminPage && !isPublicPage)) {
-            router.replace('/admin');
-        }
-        return;
+      // If an admin is on the federation dashboard, redirect them to the admin page.
+      if (pathname.startsWith('/dashboard')) {
+        router.replace('/admin');
+      }
+    } else if (isFederation) {
+      // If a federation user tries to access admin-only pages, redirect them.
+      if (pathname.startsWith('/admin') || pathname.startsWith('/schedule')) {
+        router.replace('/dashboard');
+      }
     }
-    
-    if (isFederation) {
-        if (pathname.startsWith('/admin') || pathname.startsWith('/schedule')) {
-            router.replace('/dashboard');
-        }
-        return;
-    }
-
   }, [user, isUserLoading, pathname, router]);
 
+  // CRITICAL FIX: Do not render any protected content until authentication is resolved.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
+
+  const isPublicAuthPage = ['/login', '/register'].includes(pathname);
   
-  const isPublicPage = ['/','/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
+  // For unauthenticated users, only render public pages. Otherwise, show skeleton until redirect happens.
   if (!user) {
-    return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
+    const isAllowedPublic = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
+    return isAllowedPublic ? <>{children}</> : <AppShellSkeleton />;
   }
 
+  // If a logged-in user somehow lands on login/register, show skeleton until redirect.
+  if (isPublicAuthPage) {
+    return <AppShellSkeleton />;
+  }
+
+  // User is authenticated, render the full shell
   const isAdmin = user.profile?.role === 'admin';
 
   let navItems = [];
