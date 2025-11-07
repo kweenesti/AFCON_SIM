@@ -33,29 +33,29 @@ export const useUser = (): UserHookResult => {
   } = useDoc<UserProfile>(userProfileRef);
   
   const [combinedUser, setCombinedUser] = useState<AuthUser | null>(null);
+  
+  // Overall loading state considers auth state and profile loading *if* a user is logged in
+  const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
 
   useEffect(() => {
-    if (isAuthLoading) {
+    // Don't do anything until all loading is complete
+    if (isLoading) {
       return; 
     }
     
+    // If there's no authenticated user after loading, there's no combined user
     if (!authUser) {
       setCombinedUser(null);
       return;
     }
 
-    if (isProfileLoading) {
-        return;
-    }
-
+    // If we have an auth user and loading is done, construct the combined user object
     setCombinedUser({
         ...authUser,
         profile: userProfile || undefined,
     });
 
-  }, [authUser, userProfile, isAuthLoading, isProfileLoading]);
-
-  const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
+  }, [authUser, userProfile, isLoading]);
 
   return {
     user: combinedUser,
