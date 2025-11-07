@@ -301,11 +301,23 @@ export default function AdminPage() {
     });
   };
 
-  if (isUserLoading || user?.profile?.role !== 'admin') {
+  if (isUserLoading) {
     return (
       <AppShell>
         <div className="flex h-full w-full items-center justify-center">
           <Skeleton className="h-64 w-full max-w-4xl" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (user?.profile?.role !== 'admin') {
+    // This check should be sufficient if useUser is reliable.
+    // The redirect will happen in the useEffect hook.
+    return (
+       <AppShell>
+        <div className="flex h-full w-full items-center justify-center">
+           <p>Redirecting...</p>
         </div>
       </AppShell>
     );
