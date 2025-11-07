@@ -130,7 +130,7 @@ service cloud.firestore {
      */
     match /matches/{matchId} {
         allow create, update, delete: if isAdmin();
-        allow get, list: if isSignedIn();
+        allow get, list: if request.auth != null;
     }
   }
 }
