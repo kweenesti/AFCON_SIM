@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { RegistrationForm } from '@/components/team/registration-form';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -129,7 +130,7 @@ export default function DashboardPage() {
   
   // Show a loading skeleton while we verify user, role and data
   // or if user is an admin (who will be redirected by AppShell)
-  if (isUserLoading || user?.profile?.role === 'admin' || (user && !federation && isFederationLoading)) {
+  if (isUserLoading || isFederationLoading) {
     return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
@@ -142,17 +143,17 @@ export default function DashboardPage() {
   }
 
   // After loading, if there's no federation data for a non-admin user
-  if (!isUserLoading && user && user.profile?.role !== 'admin' && !federation) {
+  if (!federation) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
            <Card>
             <CardHeader>
-                <CardTitle>Federation Data Not Found</CardTitle>
-                <CardDescription>Your team data could not be found. If you have not registered your team yet, please do so from the homepage.</CardDescription>
+                <CardTitle>Register Your Federation</CardTitle>
+                <CardDescription>Your team data could not be found. Please complete the registration to continue.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button onClick={() => router.push('/')}>Go to Homepage</Button>
+                <RegistrationForm />
             </CardContent>
            </Card>
         </main>
@@ -160,22 +161,6 @@ export default function DashboardPage() {
     );
   }
   
-  // This case handles a federation user whose data is now available.
-  // Admins are already filtered out by the loading state above.
-  if (!federation) {
-     return (
-      <AppShell>
-        <div className="container mx-auto p-4 space-y-8">
-          <p>Loading your federation data...</p>
-          <Skeleton className="h-12 w-1/3" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </AppShell>
-    );
-  }
-
-
   return (
     <AppShell>
       <main className="container mx-auto p-4 md:p-8">

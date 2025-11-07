@@ -17,6 +17,7 @@ import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
+import { RegistrationForm } from '@/components/team/registration-form';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -54,19 +55,6 @@ export default function RegisterPage() {
           email: user.email,
           role: role,
         });
-
-        // If it's a regular user, create a federation document for them
-        if (!isAdmin) {
-          const federationRef = doc(firestore, 'federations', user.uid);
-          await setDoc(federationRef, {
-            id: user.uid,
-            representativeName: name,
-            representativeEmail: email,
-            countryId: '', // User will select this on the full form
-            countryName: '', // User will select this
-            managerName: 'TBD', // Manager is set in the full form
-          }, { merge: true });
-        }
         
         toast({
           title: 'Registration Successful!',

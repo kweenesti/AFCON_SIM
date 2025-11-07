@@ -19,7 +19,7 @@ import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw } from 'lucide-react';
 import { simulateMatchAction, restartTournamentAction } from './actions';
-import { AdminRoleForm } from './admin-role-form';
+import { AdminRoleForm } from './admin-admin-role-form';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   AlertDialog,
@@ -289,8 +289,8 @@ export default function AdminPage() {
   };
 
 
-  // Show a loader while verifying user role. This is the crucial part for preventing loops.
-  if (isUserLoading || user?.profile?.role !== 'admin') {
+  // Show a loader while verifying user role.
+  if (isUserLoading || !user?.profile) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
