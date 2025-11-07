@@ -49,13 +49,12 @@ import { ScrollArea } from '../ui/scroll-area';
 import {
   useAuth,
   useFirestore,
-  setDocumentNonBlocking,
   addDocumentNonBlocking,
 } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, setDoc, writeBatch } from 'firebase/firestore';
 import { randInt } from '@/lib/generate-players';
 import { firstNames, lastNames } from '@/lib/random-names';
 
@@ -160,6 +159,10 @@ export function RegistrationForm() {
   };
 
   const onSubmit = async (data: FormData) => {
+    if (!firestore || !auth) {
+        toast({ title: 'Error', description: 'Firebase not initialized.', variant: 'destructive' });
+        return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -171,48 +174,54 @@ export function RegistrationForm() {
       if (user) {
         // Create federation doc with the user's UID as the doc ID.
         const federationRef = doc(firestore, 'federations', user.uid);
-
         const federationData: Omit<Federation, 'id'> = {
-          representativeUid: user.uid, // Add owner UID
+          representativeUid: user.uid,
           representativeName: data.representativeName,
           representativeEmail: data.representativeEmail,
           countryId: data.countryName,
           countryName: data.countryName,
           managerName: data.managerName,
         };
-        
-        setDocumentNonBlocking(federationRef, federationData, { merge: true });
+        await setDoc(federationRef, federationData, { merge: true });
 
         const userProfileRef = doc(firestore, 'users', user.uid);
-        setDocumentNonBlocking(userProfileRef, { 
+        await setDoc(userProfileRef, { 
           id: user.uid,
           email: user.email,
           role: 'federation',
           displayName: data.representativeName,
          }, { merge: true });
 
+        // Use a batch write for players for efficiency
+        const playersBatch = writeBatch(firestore);
         const playersCollectionRef = collection(
           firestore,
           'federations',
-          federationRef.id, // Use the new random federation ID
+          federationRef.id,
           'players'
         );
 
         data.squad.forEach((p, index) => {
-          const playerData: Omit<Player, 'id'> = {
-            federationId: federationRef.id,
-            name: p.name,
-            naturalPosition: p.naturalPosition,
-            isCaptain: index === data.captainIndex,
-            ...generateRatings(p.naturalPosition),
-          };
-          addDocumentNonBlocking(playersCollectionRef, playerData);
+            const playerDocRef = doc(playersCollectionRef); // Create a new doc ref for each player
+            const playerData: Player = {
+                id: playerDocRef.id,
+                federationId: federationRef.id,
+                name: p.name,
+                naturalPosition: p.naturalPosition,
+                isCaptain: index === data.captainIndex,
+                ...generateRatings(p.naturalPosition),
+            };
+            playersBatch.set(playerDocRef, playerData);
         });
 
+        await playersBatch.commit();
+        
         toast({
           title: 'Registration Successful!',
           description: `${data.countryName} has joined the tournament.`,
         });
+
+        // Redirect only after all critical data is saved.
         router.push('/dashboard');
       }
     } catch (error: any) {
