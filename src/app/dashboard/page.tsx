@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo, useTransition } from 'react';
@@ -140,8 +139,6 @@ export default function DashboardPage() {
     });
   };
   
-  const isLoading = isUserLoading || isFederationLoading || (federation && isSquadLoading);
-
   // While user data is loading, or if the user is an admin who will be redirected,
   // show a loader to prevent content flashing.
   if (isUserLoading || user?.profile?.role === 'admin') {
@@ -161,9 +158,15 @@ export default function DashboardPage() {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
-          <p>
-            Federation data not found. Please re-register or contact support.
-          </p>
+           <Card>
+            <CardHeader>
+                <CardTitle>Federation Data Not Found</CardTitle>
+                <CardDescription>Your team data could not be found. If you have not registered your team yet, please do so from the homepage.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button onClick={() => router.push('/')}>Go to Homepage</Button>
+            </CardContent>
+           </Card>
         </main>
       </AppShell>
     );

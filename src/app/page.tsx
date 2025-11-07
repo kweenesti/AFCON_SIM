@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -11,6 +10,7 @@ import { placeholderImages } from '@/lib/placeholder-images';
 import { useUser } from '@/firebase';
 import { AppShell } from '@/components/layout/app-shell';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const router = useRouter();
@@ -71,25 +71,20 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-            </Card>
-          </div>
-
-          <div className="md:col-span-5">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline text-2xl">
-                  Register Your Federation
-                </CardTitle>
-                <CardDescription>
-                  Already have an account?{' '}
-                  <Link href="/login" className="underline">
-                    Sign in here
-                  </Link>
-                  .
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RegistrationForm />
+               <CardContent className="p-6 text-center">
+                  <CardTitle className="font-headline text-2xl">
+                    Register Your Federation
+                  </CardTitle>
+                  <CardDescription className="mt-2">
+                    Create an account to manage your team. Already have one?{' '}
+                    <Link href="/login" className="underline">
+                      Sign in here
+                    </Link>
+                    .
+                  </CardDescription>
+                  <Button className="mt-4" size="lg" asChild>
+                    <Link href="/register">Get Started</Link>
+                  </Button>
               </CardContent>
             </Card>
           </div>

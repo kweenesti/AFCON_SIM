@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -49,10 +48,8 @@ import { ScrollArea } from '../ui/scroll-area';
 import {
   useAuth,
   useFirestore,
+  useUser,
 } from '@/firebase';
-import {
-  createUserWithEmailAndPassword,
-} from 'firebase/auth';
 import { doc, collection, setDoc, writeBatch } from 'firebase/firestore';
 import { randInt } from '@/lib/generate-players';
 import { firstNames, lastNames } from '@/lib/random-names';
@@ -63,9 +60,6 @@ const playerSchema = z.object({
 });
 
 const formSchema = z.object({
-  representativeName: z.string().min(2, 'Representative name is required.'),
-  representativeEmail: z.string().email('Please enter a valid email.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.'),
   countryName: z.string().min(1, 'Please select a country.'),
   managerName: z.string().min(2, 'Manager name is required.'),
   squad: z
@@ -103,16 +97,13 @@ const initialSquad = generateInitialSquad();
 export function RegistrationForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [step, setStep] = useState(1);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      representativeName: '',
-      representativeEmail: '',
-      password: '',
       countryName: '',
       managerName: '',
       squad: initialSquad, // Use the pre-generated constant squad data
@@ -126,10 +117,7 @@ export function RegistrationForm() {
   });
 
   const handleNext = async () => {
-    const fieldsToValidate =
-      step === 1
-        ? ['representativeName', 'representativeEmail', 'password', 'countryName']
-        : ['managerName'];
+    const fieldsToValidate = ['countryName', 'managerName'];
     const isValid = await form.trigger(fieldsToValidate as any);
     if (isValid) {
       setStep(step + 1);
@@ -158,40 +146,18 @@ export function RegistrationForm() {
   };
 
   const onSubmit = async (data: FormData) => {
-    if (!firestore || !auth) {
-        toast({ title: 'Error', description: 'Firebase not initialized.', variant: 'destructive' });
+    if (!firestore || !user) {
+        toast({ title: 'Error', description: 'You must be logged in to register a team.', variant: 'destructive' });
         return;
     }
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        data.representativeEmail,
-        data.password
-      );
-      const user = userCredential.user;
-
-      if (user) {
-        const role = 'federation';
-
-        // Create federation doc with the user's UID as the doc ID.
         const federationRef = doc(firestore, 'federations', user.uid);
-        const federationData = {
-          id: user.uid,
-          representativeName: data.representativeName,
-          representativeEmail: data.representativeEmail,
-          countryId: data.countryName,
+        
+        await setDoc(federationRef, { 
           countryName: data.countryName,
           managerName: data.managerName,
-        };
-        await setDoc(federationRef, federationData, { merge: true });
-
-        const userProfileRef = doc(firestore, 'users', user.uid);
-        await setDoc(userProfileRef, { 
-          id: user.uid,
-          email: user.email,
-          role: role,
-          displayName: data.representativeName,
-         }, { merge: true });
+          countryId: data.countryName, // using name as id for simplicity
+        }, { merge: true });
 
         // Use a batch write for players for efficiency
         const playersBatch = writeBatch(firestore);
@@ -224,7 +190,7 @@ export function RegistrationForm() {
 
         // Redirect only after all critical data is saved.
         router.push('/dashboard');
-      }
+      
     } catch (error: any) {
       console.error(error);
       toast({
@@ -248,19 +214,6 @@ export function RegistrationForm() {
         {step === 1 && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="representativeName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Representative Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="countryName"
@@ -288,57 +241,25 @@ export function RegistrationForm() {
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="representativeEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="e.g., rep@example.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+               <FormField
+                  control={form.control}
+                  name="managerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Manager Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Pep Guardiola" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="managerName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Manager Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Pep Guardiola" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Squad ({SQUAD_SIZE} Players)</CardTitle>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
@@ -289,17 +288,30 @@ export default function AdminPage() {
   };
 
 
-  const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
-
-  // Show a loader while verifying the user or if the user is not yet determined
-  if (isUserLoading || user?.profile?.role !== 'admin') {
+  // Show a loader while verifying user role or if data is still loading
+  if (isUserLoading || (user && user.profile?.role === 'admin' && (isFederationsLoading || isTournamentLoading))) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
           <div className="mx-auto max-w-4xl space-y-8">
             <Skeleton className="h-12 w-1/2" />
             <Skeleton className="h-64 w-full" />
-             <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </main>
+      </AppShell>
+    );
+  }
+
+  // After loading, if the user is confirmed to not be an admin, they should have already been redirected.
+  // This check is a fallback.
+  if (!user || user.profile?.role !== 'admin') {
+    return (
+       <AppShell>
+        <main className="container mx-auto p-4 md:p-8">
+          <div className="mx-auto max-w-4xl space-y-8 text-center">
+             <h1 className="font-headline text-2xl font-bold">Access Denied</h1>
+             <p>You do not have permission to view this page.</p>
           </div>
         </main>
       </AppShell>

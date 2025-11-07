@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -14,13 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import {
-  useAuth,
-  useFirestore,
-} from '@/firebase';
-import {
-  createUserWithEmailAndPassword,
-} from 'firebase/auth';
+import { useAuth, useFirestore } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
 
@@ -28,6 +22,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -42,6 +37,7 @@ export default function RegisterPage() {
       });
       return;
     }
+    setIsLoading(true);
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       const user = res.user;
@@ -78,9 +74,9 @@ export default function RegisterPage() {
         });
         
         if (isAdmin) {
-          router.push('/admin');
+          router.replace('/admin');
         } else {
-          router.push('/dashboard');
+          router.replace('/dashboard');
         }
       }
     } catch (error: any)
@@ -92,6 +88,7 @@ export default function RegisterPage() {
           error.message || 'Could not create your account. Please try again.',
         variant: 'destructive',
       });
+      setIsLoading(false);
     }
   }
 
@@ -116,6 +113,7 @@ export default function RegisterPage() {
               placeholder="John Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -123,9 +121,10 @@ export default function RegisterPage() {
             <Input
               id="email"
               type="email"
-              placeholder="rep@example.com"
+              placeholder="rep@example.com or admin@tournament.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -136,15 +135,14 @@ export default function RegisterPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
             />
           </div>
-          <Button onClick={handleRegister} className="w-full">
-            Register
+          <Button onClick={handleRegister} className="w-full" disabled={isLoading}>
+            {isLoading ? 'Registering...' : 'Register'}
           </Button>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    

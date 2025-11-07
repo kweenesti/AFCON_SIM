@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -14,15 +13,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -37,30 +37,30 @@ export default function LoginPage() {
       });
       return;
     }
+    setIsLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       // After sign-in, fetch the user's profile to check their role
       const userProfileRef = doc(firestore, 'users', user.uid);
-      const { getDoc } = await import('firebase/firestore');
       const userProfileSnap = await getDoc(userProfileRef);
+
+      toast({
+        title: 'Sign In Successful!',
+        description: 'Redirecting to your dashboard...',
+      });
 
       if (userProfileSnap.exists()) {
         const userProfile = userProfileSnap.data() as UserProfile;
-        toast({
-          title: 'Sign In Successful!',
-          description: 'Redirecting to your dashboard...',
-        });
-
         if (userProfile.role === 'admin') {
-          router.push('/admin');
+          router.replace('/admin');
         } else {
-          router.push('/dashboard');
+          router.replace('/dashboard');
         }
       } else {
         // Fallback if profile doesn't exist for some reason
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
     } catch (error: any) {
       console.error(error);
@@ -70,6 +70,7 @@ export default function LoginPage() {
           error.message || 'Could not sign you in. Please check your credentials.',
         variant: 'destructive',
       });
+      setIsLoading(false);
     }
   }
 
@@ -91,6 +92,7 @@ export default function LoginPage() {
               placeholder="rep@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -101,10 +103,11 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
             />
           </div>
-          <Button onClick={handleSignIn} className="w-full">
-            Sign In
+          <Button onClick={handleSignIn} className="w-full" disabled={isLoading}>
+            {isLoading ? 'Signing In...' : 'Sign In'}
           </Button>
           <div className="pt-4 text-center text-sm">
             Don't have an account?{' '}
@@ -117,5 +120,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
