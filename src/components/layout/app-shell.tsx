@@ -49,7 +49,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
 
   useEffect(() => {
-    // CRITICAL: Do not run any logic until Firebase has confirmed the auth state.
+    // This effect should only run AFTER the initial loading is complete.
     if (isUserLoading) {
       return;
     }
@@ -65,8 +65,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
     
     // --- Logic for Authenticated Users ---
-
-    // If a logged-in user is on an auth page, redirect them.
     if (pathname === '/login' || pathname === '/register') {
       if (user.profile?.role === 'admin') {
         router.replace('/admin');
@@ -79,24 +77,19 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const isAdmin = user.profile?.role === 'admin';
     const isFederation = user.profile?.role === 'federation';
 
-    // Role-based routing
-    if (isAdmin) {
-      // If an admin is on the federation dashboard, redirect them to the admin page.
-      if (pathname.startsWith('/dashboard')) {
+    // If a federation user tries to access admin-only pages, redirect them.
+    if (isFederation && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
+      router.replace('/dashboard');
+    }
+    
+    // If an admin is on the federation dashboard, redirect to admin.
+    if (isAdmin && pathname.startsWith('/dashboard')) {
         router.replace('/admin');
-      }
-    } else if (isFederation) {
-      // If a federation user tries to access admin-only pages, redirect them.
-      if (pathname.startsWith('/admin') || pathname.startsWith('/schedule')) {
-        router.replace('/dashboard');
-      }
     }
 
   }, [user, isUserLoading, pathname, router, auth]);
 
-
   // CRITICAL FIX: Do not render any protected content until authentication is resolved.
-  // This is the most important part of the fix.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
@@ -136,7 +129,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       });
     }
   };
-
 
   // Don't render the sidebar on the public homepage
   if (pathname === '/') {
