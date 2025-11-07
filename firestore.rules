@@ -9,7 +9,7 @@
  * - /federations/{federationId}: Federation data, accessible only to the authenticated user with the matching federationId.
  * - /federations/{federationId}/players/{playerId}: Player data nested under federations, accessible only to the owning federation.
  * - /tournaments/{tournamentId}: Tournament data. Can only be created by admins, but readable by all authenticated users.
- * - /matches/{matchId}: Match data. Can only be created/updated by admins, readable by all authenticated users.
+ * - /matches/{matchId}: Match data. Can only be created/updated by admins, readable by all users.
  *
  * Key Security Decisions:
  * - Countries are publicly readable.
@@ -17,7 +17,7 @@
  * - Federations are owned by individual users; only the owner can create, read, update, or delete their federation data. Public can read individual documents.
  * - Players are owned by their parent federation; only the owning federation can create, read, update, or delete player data.
  * - Tournaments can only be created by admins, ensuring controlled tournament management.
- * - Matches can only be created and updated by admins.
+ * - Matches can only be created and updated by admins, but are publicly readable.
  * - Authorization independence is achieved by denormalizing `federationId` into the `Player` documents.
  * - Data validation is limited to authorization-critical fields (e.g., `federationId` on Player creation).
  * - Listing of federations is allowed for any authenticated user.
@@ -127,7 +127,7 @@ service cloud.firestore {
      */
     match /matches/{matchId} {
         allow create, update, delete: if isAdmin();
-        allow get, list: if isSignedIn();
+        allow get, list: if true;
     }
   }
 }
