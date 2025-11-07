@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -25,92 +24,25 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { Logo } from '../icons/logo';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { Skeleton } from '../ui/skeleton';
 
-function AppShellSkeleton() {
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-background">
-      <div className="w-full max-w-4xl space-y-8 p-4">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    </div>
-  );
-}
-
-function AppShellContent({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const auth = useAuth();
 
-  useEffect(() => {
-    // Don't run any logic until Firebase has confirmed the auth state.
-    if (isUserLoading) {
-      return;
+  const handleLogout = () => {
+    if (auth) {
+      signOut(auth).then(() => {
+        router.push('/login');
+      });
     }
-
-    const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
-
-    // --- Logic for Unauthenticated Users ---
-    if (!user) {
-      if (!isPublicPage) {
-        router.replace('/login');
-      }
-      return;
-    }
-    
-    // --- Logic for Authenticated Users ---
-    const isAdmin = user.profile?.role === 'admin';
-    const isFederation = user.profile?.role === 'federation';
-
-    // Redirect logged-in users away from auth pages
-    if (pathname === '/login' || pathname === '/register') {
-      if (isAdmin) {
-        router.replace('/admin');
-      } else {
-        router.replace('/dashboard');
-      }
-      return;
-    }
-    
-    // Role-based redirects for accessing incorrect pages
-    if (isFederation && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
-      router.replace('/dashboard');
-    }
-    
-    if (isAdmin && pathname.startsWith('/dashboard')) {
-        router.replace('/admin');
-    }
-
-  }, [user, isUserLoading, pathname, router]);
-
-  // CRITICAL: This is the loading gate. It halts all rendering of protected pages
-  // until the authentication state is resolved, preventing race conditions.
-  if (isUserLoading) {
-    return <AppShellSkeleton />;
-  }
+  };
   
-  const isAuthPage = pathname === '/login' || pathname === '/register';
-  
-  // If user is not logged in, only allow public pages.
-  // For protected pages, this renders a skeleton while the redirect in useEffect happens.
-  if (!user) {
-     const isPublicPage = isAuthPage || pathname === '/' || pathname.startsWith('/match/');
-     return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
-  }
-
-  // If a logged-in user somehow lands on an auth page, show skeleton until redirect.
-  if (isAuthPage) {
-    return <AppShellSkeleton />;
-  }
-  
-  // User is authenticated, render the full shell.
-  const isAdmin = user.profile?.role === 'admin';
+  const isAdmin = user?.profile?.role === 'admin';
 
   const navItems = isAdmin
     ? [
@@ -125,18 +57,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         { href: '/tournament', label: 'Tournament', icon: Trophy },
       ];
 
-  const handleLogout = () => {
-    if (auth) {
-      signOut(auth).then(() => {
-        router.push('/login');
-      });
-    }
-  };
-
-  // Don't render the sidebar on the public homepage
-  if (pathname === '/') {
-    return <>{children}</>;
-  }
 
   return (
     <SidebarProvider>
@@ -180,11 +100,5 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         <div className="flex-1 overflow-auto">{children}</div>
       </SidebarInset>
     </SidebarProvider>
-  );
-}
-
-export function AppShell({ children }: { children: React.ReactNode }) {
-  return (
-      <AppShellContent>{children}</AppShellContent>
   );
 }

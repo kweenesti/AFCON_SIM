@@ -1,8 +1,6 @@
-
 'use client';
 
 import { useMemo, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import type { Federation, Player } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +31,7 @@ import { RegistrationForm } from '@/components/team/registration-form';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const { toast } = useToast();
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
@@ -134,8 +132,12 @@ export default function DashboardPage() {
     });
   };
   
-  if (isUserLoading || isFederationLoading) {
-    return (
+  if (user?.profile?.role === 'admin') {
+     return null;
+  }
+
+  if (isFederationLoading) {
+     return (
        <AppShell>
         <div className="flex h-full w-full items-center justify-center">
           <Skeleton className="h-64 w-full max-w-4xl" />
@@ -144,9 +146,6 @@ export default function DashboardPage() {
     );
   }
 
-  if (user?.profile?.role === 'admin') {
-     return null;
-  }
 
   if (!federation) {
     return (

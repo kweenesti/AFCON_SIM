@@ -27,9 +27,12 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return null;
   }, []);
 
-  // Render children without the provider on the server, where services are not available.
+  // On the server, firebaseServices will be null.
+  // We should not render the provider or its children in that case,
+  // as children might depend on the Firebase context.
   if (!firebaseServices) {
-    return <>{children}</>;
+    // Return null on the server to prevent children from rendering prematurely.
+    return null;
   }
 
   return (

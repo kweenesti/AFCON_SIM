@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -298,14 +297,6 @@ function AdminDashboard() {
         }
     });
   };
-
-  if (isUserLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Skeleton className="h-64 w-full max-w-4xl" />
-      </div>
-    );
-  }
   
   if (user?.profile?.role !== 'admin') {
     return null;

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
+import { AuthGuard } from '@/components/layout/auth-guard';
 
 export const metadata: Metadata = {
   title: 'African Nations Tournament Simulator',
@@ -30,7 +31,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         <FirebaseClientProvider>
-          {children}
+          <AuthGuard>{children}</AuthGuard>
           <Toaster />
         </FirebaseClientProvider>
       </body>
