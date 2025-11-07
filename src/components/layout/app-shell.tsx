@@ -49,7 +49,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // Wait until the authentication status is fully resolved before doing any redirects.
     if (isUserLoading) {
       return;
     }
@@ -57,7 +56,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
 
-    // If user is not logged in, redirect to login page if not already on a public page.
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
@@ -65,20 +63,17 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If user is logged in and on a public page, redirect them to their respective dashboard.
     if (isPublicPage) {
       router.replace(user.profile?.role === 'admin' ? '/admin' : '/dashboard');
       return;
     }
     
-    // If the user is an admin, ensure they are on an admin-accessible page.
     if (user.profile?.role === 'admin') {
       const isAdminPage = ['/admin', '/schedule', '/matches', '/tournament'].some(p => pathname.startsWith(p));
       if (!isAdminPage) {
         router.replace('/admin');
       }
     } 
-    // If the user is a federation member, ensure they are on a federation-accessible page.
     else if (user.profile?.role === 'federation') {
       const isFederationPage = ['/dashboard', '/matches', '/tournament'].some(p => pathname.startsWith(p));
       if (!isFederationPage) {
@@ -96,17 +91,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return <AppShellSkeleton />;
   }
-
-  // A user must be logged in to see any page with the AppShell.
-  // The redirection logic above handles unauthenticated users.
-  if (!user) {
-    // Render a skeleton or nothing while redirecting.
-    return <AppShellSkeleton />;
-  }
-
+  
   const isAdmin = user.profile?.role === 'admin';
 
   let navItems = [];
@@ -173,8 +161,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  // This outer component acts as a boundary.
-  // It ensures FirebaseClientProvider has mounted before its children try to access the context.
   return (
       <AppShellContent>{children}</AppShellContent>
   );
