@@ -51,12 +51,25 @@ async function getTeamData(firestore: FirebaseFirestore.Firestore, teamId: strin
         const playerData = d.data();
         // Ensure the federationId is correctly mapped
         return {
-            ...playerData,
+            ...(playerData as Player),
+            id: d.id, // Use the actual document ID
             federationId: teamId, // Explicitly set the correct federationId
-        } as Player;
+        };
     });
     
-    return { ...teamData, id: teamDoc.id, squad };
+    // Explicitly construct the team object to ensure correct field names
+    const team: Team = {
+        id: teamDoc.id,
+        representativeUid: teamData.representativeUid,
+        representativeName: teamData.representativeName,
+        representativeEmail: teamData.representativeEmail,
+        countryId: teamData.countryName, // Use countryName as countryId
+        countryName: teamData.countryName,
+        managerName: teamData.managerName,
+        squad: squad,
+    };
+
+    return team;
 }
 
 export async function simulateMatchAction(matchId: string, homeTeamId: string, awayTeamId: string) {
