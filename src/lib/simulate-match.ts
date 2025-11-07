@@ -1,4 +1,3 @@
-'use client';
 
 import type { Player, Team } from './types';
 import { computeTeamRating } from './generate-players';
