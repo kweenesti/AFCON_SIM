@@ -5,7 +5,7 @@
  *
  * Data Structure:
  * - /countries/{countryId}: Publicly accessible data about countries.
- * - /users/{userId}: User profile data, readable only by the owning user.
+ * - /users/{userId}: User profile data, readable by any authenticated user, writable only by the owning user.
  * - /federations/{federationId}: Federation data, accessible only to the authenticated user with the matching federationId.
  * - /federations/{federationId}/players/{playerId}: Player data nested under federations, accessible only to the owning federation.
  * - /tournaments/{tournamentId}: Tournament data. Can only be created by admins, but readable by all.
@@ -13,7 +13,7 @@
  *
  * Key Security Decisions:
  * - Countries are publicly readable.
- * - User profiles are private and can only be read/created by the owner.
+ * - User profiles are private and can only be written by the owner, but read by any authenticated user to check roles.
  * - Federations are owned by individual users; only the owner can create, read, update, or delete their federation data. Public can read individual documents.
  * - Players are owned by their parent federation; only the owning federation can create, read, update, or delete player data.
  * - Tournaments can only be created by admins, ensuring controlled tournament management.
@@ -53,18 +53,18 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces user-ownership for user profile data.
+     * @description Enforces user-ownership for user profile data modification. Allows any authenticated user to read profiles.
      * @path /users/{userId}
-     * @allow (read, write) - An authenticated user can read and write to their own user profile.
-     * @deny (list, delete) - Users cannot list or delete profiles directly.
-     * @principle Enforces document ownership for reads and writes.
+     * @allow (read) - Any authenticated user can read any user profile. This is necessary for role checks.
+     * @allow (write) - An authenticated user can write to their own user profile.
+     * @principle Separates read and write access for flexibility and security.
      */
     match /users/{userId} {
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
-      allow read, write: if isSignedIn() && isOwner(userId);
-      allow list, delete: if false;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isOwner(userId);
     }
 
     /**
