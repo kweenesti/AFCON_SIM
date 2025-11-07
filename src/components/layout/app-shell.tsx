@@ -38,27 +38,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
 
-  // The single source of truth for role-based redirection.
+  // The single source of truth for all role-based redirects.
   useEffect(() => {
     // Only run this logic when user loading is complete and we have a user object with a profile.
     if (!isUserLoading && user?.profile) {
       const isAdmin = user.profile.role === 'admin';
-      const isPublicPage = ['/login', '/register'].includes(pathname) || pathname === '/';
-      const isOnAdminPage = pathname.startsWith('/admin');
-      const isOnDashboardPage = pathname.startsWith('/dashboard');
+      const isFederation = user.profile.role === 'federation';
 
+      // Define page categories
+      const publicPages = ['/', '/login', '/register'];
+      const adminOnlyPages = ['/admin', '/schedule'];
+      const adminAllowedPages = [...adminOnlyPages, '/matches', '/tournament'];
+      const isOnAdminOnlyPage = adminOnlyPages.includes(pathname);
+      const isOnPublicPage = publicPages.includes(pathname);
+      
       if (isAdmin) {
         // If an admin is on any page that is NOT an admin-allowed page, redirect them to /admin.
-        // Admin-allowed pages are /admin, /schedule, /matches, /tournament.
-        if (!isOnAdminPage && !['/schedule', '/matches', '/tournament'].includes(pathname)) {
+        if (!adminAllowedPages.includes(pathname)) {
           router.replace('/admin');
         }
-      } else { // Is a federation user
-        // If a federation user is on an admin page, or the schedule page, redirect to their dashboard.
-        if (isOnAdminPage || pathname.startsWith('/schedule')) {
-          router.replace('/dashboard');
-        } else if (isPublicPage) {
-           // If a logged-in federation user lands on a public page, redirect to their dashboard.
+      } else if (isFederation) {
+        // If a federation user is on an admin-only page OR a public page, redirect to their dashboard.
+        if (isOnAdminOnlyPage || isOnPublicPage) {
            router.replace('/dashboard');
         }
       }

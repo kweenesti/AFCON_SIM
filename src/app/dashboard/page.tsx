@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useTransition } from 'react';
+import { useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Federation, Player } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -127,7 +127,7 @@ export default function DashboardPage() {
     });
   };
   
-  // While user data is loading, or if the user is an admin (and will be redirected by AppShell), show a loader.
+  // While user data is loading, or if the user is an admin (who will be redirected), show a loader.
   if (isUserLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>

@@ -14,7 +14,7 @@ export default function Home() {
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
-  // If the user state is loading, or if the user is logged in (and will be redirected), show a loading skeleton.
+  // If the user state is loading, or if the user is logged in (and will be redirected by AppShell), show a loading skeleton.
   if (isUserLoading || user) {
     return (
       <AppShell>
