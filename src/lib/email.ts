@@ -4,6 +4,7 @@
 import { Resend } from 'resend';
 import type { Match } from './types';
 
+// Use the API key from environment variables
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendMatchResultEmail({
@@ -13,6 +14,11 @@ export async function sendMatchResultEmail({
   recipientEmail: string;
   match: Match;
 }) {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('Resend API key is not configured.');
+    return { success: false, error: 'Email service is not configured.' };
+  }
+
   const subject = `Match Result: ${match.homeTeamName} vs ${match.awayTeamName}`;
   const body = `
     <h1>Match Result Update</h1>
