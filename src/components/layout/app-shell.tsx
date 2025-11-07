@@ -61,7 +61,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // User is logged in, handle roles and redirects
     if (isPublicPage) {
         if (user.profile?.role === 'admin') {
             router.replace('/admin');
@@ -97,7 +96,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     return <AppShellSkeleton />;
   }
 
-  const isAdmin = user?.profile?.role === 'admin';
+  // A user must be logged in to see any page with the AppShell.
+  // The redirection logic above handles unauthenticated users.
+  if (!user) {
+    return <AppShellSkeleton />;
+  }
+
+  const isAdmin = user.profile?.role === 'admin';
 
   let navItems = [];
 
@@ -164,11 +169,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { areServicesAvailable } = useFirebase();
 
-  // Show a loading skeleton until the Firebase services are fully initialized
   if (!areServicesAvailable) {
     return <AppShellSkeleton />;
   }
 
-  // Once services are available, render the actual content which handles user auth state
   return <AppShellContent>{children}</AppShellContent>;
 }
