@@ -13,13 +13,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw } from 'lucide-react';
 import { simulateMatchAction, restartTournamentAction } from './actions';
 import { AdminRoleForm } from './admin-role-form';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -289,7 +290,7 @@ export default function AdminPage() {
 
 
   // Show a loader while verifying user role. This is the crucial part for preventing loops.
-  if (isUserLoading) {
+  if (isUserLoading || user?.profile?.role !== 'admin') {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
@@ -297,21 +298,6 @@ export default function AdminPage() {
             <Skeleton className="h-12 w-1/2" />
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-48 w-full" />
-          </div>
-        </main>
-      </AppShell>
-    );
-  }
-
-  // After loading, if the user is confirmed to not be an admin, they should have already been redirected.
-  // This is a fallback and also handles the case where a non-admin tries to access the URL directly.
-  if (user?.profile?.role !== 'admin') {
-    return (
-       <AppShell>
-        <main className="container mx-auto p-4 md:p-8">
-          <div className="mx-auto max-w-4xl space-y-8 text-center">
-             <h1 className="font-headline text-2xl font-bold">Access Denied</h1>
-             <p>You do not have permission to view this page.</p>
           </div>
         </main>
       </AppShell>

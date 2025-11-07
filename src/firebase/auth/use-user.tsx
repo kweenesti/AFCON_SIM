@@ -39,12 +39,14 @@ export const useUser = (): UserHookResult => {
   const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
-    // Overall loading is true if auth is loading or if we have an auth user but are still loading their profile.
+    // Correctly determine the overall loading state. It's loading if auth is loading,
+    // OR if we have an auth user but are still waiting for their profile.
     const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
     setIsUserLoading(isLoading);
 
     if (!isLoading) {
       if (authUser) {
+        // Only combine the user and profile once everything is loaded.
         setCombinedUser({
           ...authUser,
           profile: userProfile || undefined,

@@ -22,13 +22,13 @@ import {
   useFirestore,
   useUser,
   useDoc,
-  updateDocumentNonBlocking,
 } from '@/firebase';
 import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function DashboardPage() {
   const router = useRouter();

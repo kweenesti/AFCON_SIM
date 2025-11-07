@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
 
-  // The single source of truth for all role-based redirects.
+  // This is the single source of truth for all role-based redirects.
   useEffect(() => {
     // Only run this logic when user loading is complete and we have a user object with a profile.
     if (!isUserLoading && user?.profile) {
