@@ -49,9 +49,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       const publicPages = ['/', '/login', '/register'];
       const adminOnlyPages = ['/admin', '/schedule'];
       const adminAllowedPages = [...adminOnlyPages, '/matches', '/tournament'];
-      const isOnAdminOnlyPage = adminOnlyPages.includes(pathname);
       const isOnPublicPage = publicPages.includes(pathname);
-      
+      const isOnAdminOnlyPage = adminOnlyPages.includes(pathname);
+
+
       if (isAdmin) {
         // If an admin is on any page that is NOT an admin-allowed page, redirect them to /admin.
         if (!adminAllowedPages.includes(pathname)) {

@@ -127,8 +127,8 @@ export default function DashboardPage() {
     });
   };
   
-  // While user data is loading, or if the user is an admin (who will be redirected), show a loader.
-  if (isUserLoading || user?.profile?.role === 'admin') {
+  // Show a loading skeleton while we verify user, role and data
+  if (isUserLoading || (user && !federation && isFederationLoading)) {
     return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
@@ -140,8 +140,8 @@ export default function DashboardPage() {
     );
   }
 
-  // After loading, if there's no user, or no federation data for a non-admin user
-  if (!user || (!federation && !isFederationLoading)) {
+  // After loading, if there's no federation data for a non-admin user
+  if (!isUserLoading && user && user.profile?.role !== 'admin' && !federation) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
@@ -159,8 +159,8 @@ export default function DashboardPage() {
     );
   }
   
-  // Prevents rendering flickering for federation users while their data loads.
-  if (isFederationLoading || !federation) {
+  // If we have a federation user, but no federation data yet (maybe still loading, or doesn't exist)
+  if (!federation) {
      return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
