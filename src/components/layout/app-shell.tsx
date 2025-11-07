@@ -49,14 +49,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // This is the critical fix. Do not run any redirect logic until the user's
-    // auth status is fully loaded and confirmed.
+    // Do not run any redirect logic until the user's auth status is fully loaded.
     if (isUserLoading) {
       return;
     }
 
     const publicPages = ['/', '/login', '/register'];
-    const isPublicPage = publicPages.includes(pathname);
+    const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
 
     // If the user is not logged in, they should be on a public page.
     // If they are on a protected page, redirect to login.
@@ -67,9 +66,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If the user IS logged in, they should NOT be on a public page.
+    // If the user IS logged in, they should NOT be on the main public pages.
     // Redirect them to their appropriate dashboard.
-    if (isPublicPage) {
+    if (pathname === '/' || pathname === '/login' || pathname === '/register') {
       router.replace(user.profile?.role === 'admin' ? '/admin' : '/dashboard');
       return;
     }
@@ -101,12 +100,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // While loading, show a skeleton screen to prevent flashing content or incorrect redirects.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
   
-  // Don't render the main app shell for public pages
-  if (!user && ['/login', '/register'].includes(pathname)) {
+  // If not loading and not authenticated, render content for public pages (like login/register).
+  if (!user) {
     return <>{children}</>;
   }
 
