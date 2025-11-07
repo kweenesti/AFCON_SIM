@@ -41,9 +41,9 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  // Redirect non-admins only after user loading is complete
+  // Redirect non-admins only after user loading is complete and role is confirmed non-admin
   useEffect(() => {
-    if (!isUserLoading && (!user || user.profile?.role !== 'admin')) {
+    if (!isUserLoading && user?.profile?.role !== 'admin') {
       router.replace('/dashboard');
     }
   }, [user, isUserLoading, router]);
@@ -292,7 +292,7 @@ export default function AdminPage() {
   const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
 
   // Show a loader while verifying the user or if the user is not yet determined
-  if (isUserLoading || !user) {
+  if (isUserLoading || user?.profile?.role !== 'admin') {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
@@ -306,12 +306,6 @@ export default function AdminPage() {
     );
   }
   
-  // After loading, if the user is not an admin, they will be redirected by the useEffect.
-  // Render nothing here to prevent content flashing.
-  if (user.profile?.role !== 'admin') {
-      return null;
-  }
-
   const hasTournamentStarted = !!tournament;
   const canStartTournament = (federations?.length ?? 0) === 8 && !hasTournamentStarted;
   
