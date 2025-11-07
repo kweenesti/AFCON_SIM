@@ -55,7 +55,7 @@ export default function TournamentPage() {
     const tournament = tournaments?.[0];
   
     const matchesQuery = useMemoFirebase(
-      () => (tournament ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
+      () => (tournament && firestore ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
       [firestore, tournament]
     );
     const { data: matches, isLoading: areMatchesLoading } = useCollection<Match>(matchesQuery);

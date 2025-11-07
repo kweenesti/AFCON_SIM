@@ -2,13 +2,12 @@
 'use client';
 
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { Match, Goal } from '@/lib/types';
 import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, Shield, Goal as GoalIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -23,7 +22,7 @@ export default function MatchPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
   
   const matchRef = useMemoFirebase(
-    () => (id ? doc(firestore, 'matches', id) : null),
+    () => (id && firestore ? doc(firestore, 'matches', id) : null),
     [firestore, id]
   );
   const { data: match, isLoading, error } = useDoc<Match>(matchRef);
