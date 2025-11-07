@@ -13,6 +13,11 @@ let firestore: Firestore;
 // This function initializes Firebase and exports the SDKs.
 // It's designed to be called once on the client side.
 export function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    // This is a safeguard, but the logic in AuthGuard should prevent this.
+    throw new Error("Firebase cannot be initialized on the server.");
+  }
+  
   if (!getApps().length) {
     try {
       // First, try to initialize with App Hosting's auto-configuration
@@ -39,7 +44,6 @@ export function initializeFirebase() {
 
 // Export the hooks and providers
 export * from './provider';
-export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
 export * from './non-blocking-updates';

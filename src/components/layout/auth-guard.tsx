@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useUser, initializeFirebase, FirebaseProvider as InternalFirebaseProvider, useFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AppShell } from './app-shell';
 
@@ -17,7 +17,7 @@ function FullPageLoading() {
     );
 }
 
-export function AuthGuard({ children }: { children: ReactNode }) {
+function AuthGuardContent({ children }: { children: ReactNode }) {
     const { user, isUserLoading } = useUser();
     const pathname = usePathname();
     const router = useRouter();
@@ -38,7 +38,6 @@ export function AuthGuard({ children }: { children: ReactNode }) {
         }
 
         const isAdmin = user.profile?.role === 'admin';
-        const isFederation = user.profile?.role === 'federation';
         
         if (isAuthPage) {
              if (isAdmin) {
@@ -49,12 +48,12 @@ export function AuthGuard({ children }: { children: ReactNode }) {
             return;
         }
 
-        if (isAdmin && pathname.startsWith('/dashboard')) {
+        if (isAdmin && pathname === '/dashboard') {
             router.replace('/admin');
             return;
         }
 
-        if (isFederation && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
+        if (!isAdmin && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
             router.replace('/dashboard');
         }
 
@@ -73,5 +72,30 @@ export function AuthGuard({ children }: { children: ReactNode }) {
         return <FullPageLoading />;
     }
 
+    // At this point, user is loaded and is not on a public-only page
     return <AppShell>{children}</AppShell>;
+}
+
+
+export function AuthGuard({ children }: { children: ReactNode }) {
+  // This state check ensures we don't try to render anything on the server.
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // Render nothing on the server
+  }
+
+  return <AuthGuardContent>{children}</AuthGuardContent>;
+}
+
+export function FirebaseProvider({children}: {children: ReactNode}) {
+    const firebaseServices = initializeFirebase();
+    return (
+        <InternalFirebaseProvider {...firebaseServices}>
+            {children}
+        </InternalFirebaseProvider>
+    )
 }
