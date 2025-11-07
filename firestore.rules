@@ -63,7 +63,7 @@ service cloud.firestore {
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow write: if isSignedIn() && isOwner(userId);
     }
@@ -85,7 +85,7 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces user-ownership for player data nested under federations. The federation ID in the path must match the authenticated user's UID.
+     * @description Enforces user-ownership for player data nested under federations. The federation ID in the path must be the authenticated user's UID.
      * @path /federations/{federationId}/players/{playerId}
      * @allow (list, get) - The owning federation representative or an admin can list and get players.
      * @allow (create) - The owner can create a player if the new player's `federationId` matches their UID.
