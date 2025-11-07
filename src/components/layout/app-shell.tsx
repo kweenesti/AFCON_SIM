@@ -48,46 +48,46 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // CRITICAL FIX: Do not execute any logic until the authentication state is confirmed.
+    // CRITICAL: Do not run any logic if we are still verifying the user's auth state.
     if (isUserLoading) {
       return;
     }
 
     const publicPages = ['/', '/login', '/register'];
+    // Matches /match/[id] pages
     const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
 
-    // If the user is NOT logged in...
-    if (!user) {
-      // and they are not on a public page, redirect them to login.
-      if (!isPublicPage) {
-        router.replace('/login');
-      }
+    // If user is not logged in and not on a public page, redirect to login.
+    if (!user && !isPublicPage) {
+      router.replace('/login');
       return;
     }
 
-    // If the user IS logged in...
-    const isAdmin = user.profile?.role === 'admin';
-    const isFederation = user.profile?.role === 'federation';
+    // If user IS logged in...
+    if (user) {
+      const isAdmin = user.profile?.role === 'admin';
+      const isFederation = user.profile?.role === 'federation';
 
-    // and they are on a public-only page (like login), redirect them to their dashboard.
-    if (pathname === '/login' || pathname === '/register') {
-        router.replace(isAdmin ? '/admin' : '/dashboard');
-        return;
-    }
-    
-    // If the user is an admin but on a page only for federation users...
-    if (isAdmin && pathname.startsWith('/dashboard')) {
-        router.replace('/admin');
-        return;
-    }
-    
-    // If the user is a federation user but on a page only for admins...
-    if (isFederation && pathname.startsWith('/admin')) {
-        router.replace('/dashboard');
-        return;
+      // ...and tries to access a public-only page like login/register, redirect them.
+      if (pathname === '/login' || pathname === '/register') {
+          router.replace(isAdmin ? '/admin' : '/dashboard');
+          return;
+      }
+      
+      // ...and is an admin on a federation-only page, redirect to admin.
+      if (isAdmin && pathname.startsWith('/dashboard')) {
+          router.replace('/admin');
+          return;
+      }
+      
+      // ...and is a federation user on an admin-only page, redirect to dashboard.
+      if (isFederation && pathname.startsWith('/admin')) {
+          router.replace('/dashboard');
+          return;
+      }
     }
 
-  }, [user, isUserLoading, pathname, router]);
+  }, [user, isUserLoading, pathname, router, auth]);
 
 
   const handleLogout = () => {
@@ -98,7 +98,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // While loading authentication state, show a full-page skeleton. This is key to preventing the redirect.
+  // While loading, show a skeleton. This is the key to preventing redirects.
+  // The useEffect above will not run until isUserLoading is false.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
@@ -108,7 +109,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // If we reach here, the user is logged in and auth state is confirmed. Render the full app shell.
+  // If we reach here, the user is logged in. Render the full app shell.
   const isAdmin = user?.profile?.role === 'admin';
 
   let navItems = [];
