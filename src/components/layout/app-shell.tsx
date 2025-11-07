@@ -59,7 +59,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  // This is a robust way to prevent content rendering until user state is fully resolved.
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      if (user.profile?.role === 'admin' && pathname.startsWith('/dashboard')) {
+        router.replace('/admin');
+      } else if (
+        user.profile?.role === 'federation' &&
+        (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))
+      ) {
+        router.replace('/dashboard');
+      } else if (
+        user.profile?.role === 'federation' &&
+        (pathname === '/' || pathname === '/login' || pathname === '/register')
+      ) {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, isUserLoading, pathname, router]);
+
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
