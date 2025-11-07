@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isSaving, startSaving] = useTransition();
+  const [isGenerating, startGenerating] = useTransition();
 
   const federationRef = useMemoFirebase(
     () => (user ? doc(firestore, 'federations', user.uid) : null),
@@ -51,11 +52,8 @@ export default function DashboardPage() {
         : null,
     [firestore, federation]
   );
-  const {
-    data: squad,
-    isLoading: isSquadLoading,
-    setData: setSquad,
-  } = useCollection<Player>(playersRef);
+  const { data: squad, isLoading: isSquadLoading } =
+    useCollection<Player>(playersRef);
 
   const formMethods = useForm({
     values: {
@@ -80,12 +78,46 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
-    const newSquad = generatePlayers(squad || []);
-    setSquad(newSquad);
-    const rating = computeTeamRating(newSquad);
-    toast({
-      title: 'Squad Generated!',
-      description: `New team rating: ${rating}`,
+    startGenerating(async () => {
+      if (!firestore || !federation) return;
+
+      const newSquad = generatePlayers(squad || []);
+      const batch = writeBatch(firestore);
+      const playersCollectionRef = collection(
+        firestore,
+        'federations',
+        federation.id,
+        'players'
+      );
+      
+      // Delete existing players first
+      if (squad && squad.length > 0) {
+        const existingPlayersSnapshot = await getDocs(playersCollectionRef);
+        existingPlayersSnapshot.forEach((playerDoc) => {
+          batch.delete(playerDoc.ref);
+        });
+      }
+
+      // Add new players
+      newSquad.forEach((player) => {
+        const playerDocRef = doc(playersCollectionRef, player.id);
+        batch.set(playerDocRef, player);
+      });
+      
+      try {
+        await batch.commit();
+        const rating = computeTeamRating(newSquad);
+        toast({
+          title: 'Squad Generated!',
+          description: `New team rating: ${rating}`,
+        });
+      } catch(error: any) {
+        toast({
+          title: 'Error Generating Squad',
+          description: error.message || 'Could not generate a new squad.',
+          variant: 'destructive',
+        });
+      }
     });
   };
 
@@ -104,23 +136,6 @@ export default function DashboardPage() {
 
       const federationDocRef = doc(firestore, 'federations', federation.id);
       batch.update(federationDocRef, { managerName: formData.managerName });
-
-      const playersCollectionRef = collection(
-        firestore,
-        'federations',
-        federation.id,
-        'players'
-      );
-
-      const existingPlayersSnapshot = await getDocs(playersCollectionRef);
-      existingPlayersSnapshot.forEach((playerDoc) => {
-        batch.delete(playerDoc.ref);
-      });
-
-      squad.forEach((player) => {
-        const playerDocRef = doc(playersCollectionRef, player.id);
-        batch.set(playerDocRef, player);
-      });
 
       try {
         await batch.commit();
@@ -201,9 +216,10 @@ export default function DashboardPage() {
                     type="button"
                     onClick={handleGenerateSquad}
                     variant="secondary"
+                    disabled={isGenerating}
                   >
                     <Sparkles className="mr-2" />
-                    Generate New Squad
+                    {isGenerating ? 'Generating...' : 'Generate New Squad'}
                   </Button>
                 </div>
                 <div className="flex justify-end gap-2">
