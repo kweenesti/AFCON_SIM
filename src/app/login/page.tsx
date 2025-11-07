@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -13,8 +14,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -22,6 +25,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   async function handleSignIn() {
@@ -34,12 +38,30 @@ export default function LoginPage() {
       return;
     }
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'Sign In Successful!',
-        description: 'Redirecting to your dashboard...',
-      });
-      router.push('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // After sign-in, fetch the user's profile to check their role
+      const userProfileRef = doc(firestore, 'users', user.uid);
+      const { getDoc } = await import('firebase/firestore');
+      const userProfileSnap = await getDoc(userProfileRef);
+
+      if (userProfileSnap.exists()) {
+        const userProfile = userProfileSnap.data() as UserProfile;
+        toast({
+          title: 'Sign In Successful!',
+          description: 'Redirecting to your dashboard...',
+        });
+
+        if (userProfile.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      } else {
+        // Fallback if profile doesn't exist for some reason
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       console.error(error);
       toast({
@@ -95,3 +117,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

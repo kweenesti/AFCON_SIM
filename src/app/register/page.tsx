@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -75,7 +76,12 @@ export default function RegisterPage() {
           title: 'Registration Successful!',
           description: 'Redirecting to your dashboard...',
         });
-        router.push('/dashboard');
+        
+        if (isAdmin) {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (error: any)
     {
@@ -140,3 +146,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+    

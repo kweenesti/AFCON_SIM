@@ -41,6 +41,13 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
 
+  // Redirect non-admins only after user loading is complete
+  useEffect(() => {
+    if (!isUserLoading && (!user || user.profile?.role !== 'admin')) {
+      router.replace('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
   // Fetch all federations - ONLY if user is an admin
   const federationsRef = useMemoFirebase(
     () => (firestore && user?.profile?.role === 'admin' ? collection(firestore, 'federations') : null),
@@ -63,12 +70,6 @@ export default function AdminPage() {
   );
   const { data: matches, isLoading: areMatchesLoading } = useCollection<Match>(matchesQuery);
 
-
-  useEffect(() => {
-    if (!isUserLoading && (!user || user.profile?.role !== 'admin')) {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
 
   const handleStartTournament = async () => {
     if (!federations) return;
@@ -290,7 +291,7 @@ export default function AdminPage() {
 
   const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
@@ -303,8 +304,8 @@ export default function AdminPage() {
     );
   }
   
-  if (!user || user.profile?.role !== 'admin') {
-      return null; // or a dedicated "access denied" component
+  if (user.profile?.role !== 'admin') {
+      return null; // Render nothing while redirecting
   }
 
   const hasTournamentStarted = !!tournament;
@@ -464,3 +465,5 @@ export default function AdminPage() {
     </AppShell>
   );
 }
+
+    
