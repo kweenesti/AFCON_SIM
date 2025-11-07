@@ -26,8 +26,9 @@ export const lastNames = [
     "Nwankwo", "Nweke", "Nwobodo", "Nwosu", "Obasanjo", "Obi", "Obiang", "Odegbami",
     "Ogunbiyi", "Ogunleye", "Ogunsola", "Okafor", "Okereke", "Okoro", "Okoye",
     "Okpara", "Olanrewaju", "Olatunji", "Oliha", "Olowu", "Oluwole", "Oni", "Onu",
-    "Onyeka", "Osei", "Osinbajo", "Osuji", "Oumarou", "Oyedepo", "Salami", "Sani",
+    "Onyeka", "Osei", "Osuji", "Oumarou", "Oyedepo", "Salami", "Sani",
     "Sanusi", "Shagari", "Shonekan", "Sidibe", "Sow", "Soyinka", "Taiwo", "Toure",
     "Traore", "Uba", "Uche", "Ude", "Udoma", "Ugwu", "Umar", "Usman", "Wabara",
     "Yakubu", "Yaradua", "Yeboah", "Yusuf"
 ];
+
