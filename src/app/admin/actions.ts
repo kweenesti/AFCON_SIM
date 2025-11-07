@@ -121,11 +121,14 @@ export async function restartTournamentAction(tournamentId: string | undefined):
         const batch = writeBatch(firestore);
 
         // 1. Delete all matches for the tournament
-        const matchesQuery = query(collection(firestore, 'matches'), where('tournamentId', '==', tournamentId));
-        const matchesSnapshot = await getDocs(matchesQuery);
-        matchesSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
+        if (tournamentId) {
+            const matchesQuery = query(collection(firestore, 'matches'), where('tournamentId', '==', tournamentId));
+            const matchesSnapshot = await getDocs(matchesQuery);
+            matchesSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+        }
+        
 
         // 2. Delete the tournament document itself
         if (tournamentId) {
