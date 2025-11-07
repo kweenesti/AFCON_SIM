@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -54,16 +53,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Define navigation items based on user role
   let navItems = [];
   const isAdminPage = pathname === '/admin';
+  let headerDashboardLink = '/dashboard';
 
   if (isRegistered) {
     if (user.profile?.role === 'admin') {
       navItems = [
-        { href: '/dashboard', label: 'Dashboard', icon: Home },
+        { href: '/admin', label: 'Admin', icon: UserCog },
+        { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
         { href: '/matches', label: 'Matches', icon: Swords },
         { href: '/tournament', label: 'Tournament', icon: Trophy },
-        { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
-        { href: '/admin', label: 'Admin', icon: UserCog },
       ];
+      headerDashboardLink = '/admin';
     } else {
       // Regular federation user
       navItems = [
@@ -71,6 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { href: '/matches', label: 'Matches', icon: Swords },
         { href: '/tournament', label: 'Tournament', icon: Trophy },
       ];
+      headerDashboardLink = '/dashboard';
     }
   } else {
     // Logged-out visitor
@@ -137,12 +138,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="flex h-12 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
            {isRegistered ? (
-             // For admins on the admin page, this button is not needed.
-             !(user.profile?.role === 'admin' && isAdminPage) && (
-                 <Button variant="ghost" size="sm" asChild>
-                    <Link href="/dashboard">Go to Dashboard</Link>
-                 </Button>
-             )
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={headerDashboardLink}>
+                    {user.profile?.role === 'admin' ? 'Go to Admin' : 'Go to Dashboard'}
+                </Link>
+              </Button>
            ) : (
              <Button variant="ghost" size="sm" onClick={handleLogin}>
                 Sign In
