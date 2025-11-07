@@ -11,6 +11,7 @@ import {
 import { placeholderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Trophy, Swords } from 'lucide-react';
 
 export default function Home() {
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
@@ -58,9 +59,23 @@ export default function Home() {
                       federation, build your dream team, and compete for the
                       title.
                     </p>
-                    <Button className="mt-6" size="lg" asChild>
-                      <Link href="/register">Register Your Team Today</Link>
-                    </Button>
+                    <div className="mt-6 flex flex-wrap justify-center gap-4">
+                        <Button size="lg" asChild>
+                          <Link href="/register">Register Your Team Today</Link>
+                        </Button>
+                         <Button size="lg" variant="secondary" asChild>
+                            <Link href="/tournament">
+                                <Trophy className="mr-2" />
+                                View Tournament
+                            </Link>
+                        </Button>
+                         <Button size="lg" variant="secondary" asChild>
+                            <Link href="/matches">
+                                <Swords className="mr-2" />
+                                View Matches
+                            </Link>
+                        </Button>
+                    </div>
                   </div>
                 </div>
               </Card>
