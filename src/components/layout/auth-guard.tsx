@@ -35,7 +35,7 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
 
     if (!user) {
       if (!isPublicPage) {
-        router.replace('/login');
+        router.replace('/'); // Redirect to home page if not logged in and not on a public page
       }
       return;
     }
