@@ -48,15 +48,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // 1. Wait for authentication to complete.
+    // This effect now ONLY handles redirects AFTER loading is complete.
     if (isUserLoading) {
-      return;
+      return; // Do nothing while loading.
     }
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
 
-    // 2. Handle users who are NOT logged in.
+    // Handle users who are NOT logged in
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
@@ -64,17 +64,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 3. Handle users who ARE logged in.
+    // Handle users who ARE logged in
     const isAdmin = user.profile?.role === 'admin';
     const isFederation = user.profile?.role === 'federation';
 
-    // Redirect from login/register if already logged in.
     if (pathname === '/login' || pathname === '/register') {
         router.replace(isAdmin ? '/admin' : '/dashboard');
         return;
     }
     
-    // Enforce role-based access.
     if (isAdmin && pathname.startsWith('/dashboard')) {
         router.replace('/admin');
         return;
@@ -87,18 +85,23 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   }, [user, isUserLoading, pathname, router]);
 
-  // CRITICAL FIX: While loading, show a skeleton to prevent any premature rendering or redirects.
+  // STAGE 1: AUTHENTICATION IS LOADING
+  // Show a full-page skeleton and do nothing else. This prevents any
+  // other logic from running and causing a race condition.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
   
-  // If not loading and not authenticated, render children for public pages (like login/register).
+  // STAGE 2: LOADING IS COMPLETE, BUT USER IS NOT LOGGED IN
+  // For public pages, we can render the content directly.
+  // For protected pages, the useEffect above will handle the redirect to /login.
   if (!user) {
     const isPublicPage = ['/','/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
-    return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
+    return isPublicPage ? <>{children}</> : <AppShellSkeleton />; // Show skeleton while redirecting
   }
 
-  // If we reach here, the user is logged in. Render the full app shell.
+  // STAGE 3: LOADING IS COMPLETE, AND USER IS LOGGED IN
+  // Render the full application shell with sidebar and content.
   const isAdmin = user?.profile?.role === 'admin';
 
   let navItems = [];
