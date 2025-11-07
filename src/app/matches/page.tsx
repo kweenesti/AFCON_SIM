@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Match, Tournament } from '@/lib/types';
-import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy } from 'lucide-react';
@@ -73,64 +72,62 @@ export default function MatchesPage() {
     );
 
     return (
-        <AppShell>
-             <main className="container mx-auto p-4 md:p-8">
-                <div className="mx-auto max-w-4xl space-y-8">
-                    <div className="text-center">
-                        <h1 className="font-headline text-3xl font-bold md:text-4xl">
-                        Tournament Matches
-                        </h1>
-                        <p className="mt-2 text-muted-foreground">
-                        View the fixtures and results from the tournament.
-                        </p>
-                    </div>
+        <main className="container mx-auto p-4 md:p-8">
+            <div className="mx-auto max-w-4xl space-y-8">
+                <div className="text-center">
+                    <h1 className="font-headline text-3xl font-bold md:text-4xl">
+                    Tournament Matches
+                    </h1>
+                    <p className="mt-2 text-muted-foreground">
+                    View the fixtures and results from the tournament.
+                    </p>
+                </div>
 
-                    {isLoading && (
-                        <div className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <Skeleton className="h-8 w-1/3" />
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <Skeleton className="h-12 w-full" />
-                                    <Skeleton className="h-12 w-full" />
-                                </CardContent>
-                            </Card>
-                             <Card>
-                                <CardHeader>
-                                    <Skeleton className="h-8 w-1/3" />
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <Skeleton className="h-12 w-full" />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
-
-                    {!isLoading && !tournament && (
-                         <Card>
-                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Trophy />
-                                    No Tournament Found
-                                </CardTitle>
-                                <CardDescription>An administrator has not started a tournament yet.</CardDescription>
+                {isLoading && (
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <Skeleton className="h-8 w-1/3" />
                             </CardHeader>
-                            <CardContent>
-                                <p className="text-center text-muted-foreground">Check back soon!</p>
+                            <CardContent className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
                             </CardContent>
                         </Card>
-                    )}
+                            <Card>
+                            <CardHeader>
+                                <Skeleton className="h-8 w-1/3" />
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
-                    {!isLoading && tournament && (
-                       <div className="space-y-6">
-                            {renderMatchList(final, 'Final')}
-                            {renderMatchList(semiFinals, 'Semi-Finals')}
-                            {renderMatchList(quarterFinals, 'Quarter-Finals')}
-                       </div>
-                    )}
-                </div>
-            </main>
-        </AppShell>
+                {!isLoading && !tournament && (
+                        <Card>
+                            <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Trophy />
+                                No Tournament Found
+                            </CardTitle>
+                            <CardDescription>An administrator has not started a tournament yet.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-center text-muted-foreground">Check back soon!</p>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {!isLoading && tournament && (
+                    <div className="space-y-6">
+                        {renderMatchList(final, 'Final')}
+                        {renderMatchList(semiFinals, 'Semi-Finals')}
+                        {renderMatchList(quarterFinals, 'Quarter-Finals')}
+                    </div>
+                )}
+            </div>
+        </main>
     )
 }

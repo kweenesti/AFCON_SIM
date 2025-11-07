@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -121,7 +122,7 @@ export function RegistrationForm() {
     () => (firestore ? collection(firestore, 'federations') : null),
     [firestore]
   );
-  const { data: federations } = useCollection<Federation>(federationsRef);
+  const { data: federations, isLoading: isFederationsLoading } = useCollection<Federation>(federationsRef);
 
   const availableCountries = useMemo(() => {
     if (!federations) return africanCountries;
@@ -241,10 +242,11 @@ export function RegistrationForm() {
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      disabled={isFederationsLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a country to represent" />
+                          <SelectValue placeholder={isFederationsLoading ? "Loading countries..." : "Select a country to represent"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

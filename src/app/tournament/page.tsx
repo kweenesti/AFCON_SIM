@@ -17,8 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AppShell } from '@/components/layout/app-shell';
-
 
 function BracketNode({ match }: { match: Match | undefined }) {
   if (!match) {
