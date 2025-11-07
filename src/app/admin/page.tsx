@@ -14,9 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
-import type { Federation, Tournament, Match } from '@/lib/types';
+import type { Federation, Tournament, Match, Email } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw, Bot, Database } from 'lucide-react';
+import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw, Bot, Database, Mail } from 'lucide-react';
 import { simulateMatchAction, restartTournamentAction, playMatchAction, seedFederationsAction } from './actions';
 import { AdminRoleForm } from './admin-role-form';
 import {
@@ -30,6 +30,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatDistanceToNow } from 'date-fns';
+
 
 function AdminDashboard() {
   const { toast } = useToast();
@@ -56,6 +59,12 @@ function AdminDashboard() {
     [firestore]
   );
   const { data: allMatches } = useCollection<Match>(allMatchesQuery);
+
+  const mailQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'mail'), orderBy('createdAt', 'desc')) : null),
+    [firestore]
+  );
+  const { data: sentEmails, isLoading: areEmailsLoading } = useCollection<Email>(mailQuery);
 
   const matches = useMemo(() => {
     if (!allMatches || !tournament) return [];
@@ -501,6 +510,48 @@ function AdminDashboard() {
           </Card>
         )}
 
+        <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail />
+                Sent Emails
+              </CardTitle>
+              <CardDescription>
+                A log of all emails sent to federation representatives.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+             {areEmailsLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                </div>
+              ) : sentEmails && sentEmails.length > 0 ? (
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead>To</TableHead>
+                              <TableHead>Subject</TableHead>
+                              <TableHead className="text-right">Sent</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {sentEmails.map(email => (
+                              <TableRow key={email.id}>
+                                  <TableCell>{email.to}</TableCell>
+                                  <TableCell>{email.message.subject}</TableCell>
+                                  <TableCell className="text-right">
+                                      {email.createdAt?.toDate ? formatDistanceToNow(email.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+              ) : (
+                  <p className="text-center text-muted-foreground">No emails have been sent yet.</p>
+              )}
+          </CardContent>
+        </Card>
+
       </div>
     </main>
   );
@@ -513,3 +564,5 @@ export default function AdminPage() {
     </AppShell>
   );
 }
+
+    

@@ -68,3 +68,15 @@ export interface Match {
     createdAt: any;
     goals?: Goal[];
 }
+
+export interface Email {
+    id: string;
+    to: string;
+    message: {
+        subject: string;
+        text: string;
+    };
+    createdAt: any; // Firestore Timestamp
+}
+
+    
