@@ -47,7 +47,14 @@ async function getTeamData(firestore: FirebaseFirestore.Firestore, teamId: strin
     const teamData = teamDoc.data() as Federation;
     
     const playersSnap = await teamDocRef.collection('players').get();
-    const squad = playersSnap.docs.map(d => d.data() as Player);
+    const squad = playersSnap.docs.map(d => {
+        const playerData = d.data();
+        // Ensure the federationId is correctly mapped
+        return {
+            ...playerData,
+            federationId: teamId, // Explicitly set the correct federationId
+        } as Player;
+    });
     
     return { ...teamData, id: teamDoc.id, squad };
 }
@@ -87,7 +94,7 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
 
         const homeTeam = await getTeamData(firestore, homeTeamId);
         const awayTeam = await getTeamData(firestore, awayTeamId);
-
+        
         const result = await generateMatchCommentary({ homeTeam, awayTeam });
         
         if (!result) {
@@ -135,20 +142,14 @@ export async function restartTournamentAction(tournamentId: string | undefined):
         // Also clear all federations
         const federationsQuery = firestore.collection('federations');
         const federationsSnapshot = await federationsQuery.get();
-        federationsSnapshot.forEach(doc => {
-            // We need to delete subcollections recursively
-            // This is a simplified approach. For deep subcollections, a more complex solution is needed.
+        for (const doc of federationsSnapshot.docs) {
             const playersRef = doc.ref.collection('players');
-            // This part of the code is not recursive, it just deletes one level deep.
-            // For this app, it is sufficient.
-            return playersRef.get().then(playersSnapshot => {
-                playersSnapshot.forEach(playerDoc => {
-                    batch.delete(playerDoc.ref);
-                });
-                batch.delete(doc.ref);
+            const playersSnapshot = await playersRef.get();
+            playersSnapshot.forEach(playerDoc => {
+                batch.delete(playerDoc.ref);
             });
-        });
-
+            batch.delete(doc.ref);
+        }
 
         await batch.commit();
 
