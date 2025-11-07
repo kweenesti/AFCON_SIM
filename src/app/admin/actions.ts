@@ -2,10 +2,9 @@
 'use server';
 import 'dotenv/config';
 
-import { getFirestore } from 'firebase-admin/firestore';
-import { collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, DocumentData, collectionGroup } from 'firebase/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
-import type { Federation, Match, Player, Team, Tournament } from '@/lib/types';
+import type { Federation, Player, Team } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
 import { generateMatchCommentary } from '@/ai/flows/generate-match-commentary';
@@ -29,8 +28,8 @@ export async function grantAdminRole(prevState: any, formData: FormData) {
         return { message: `User with email ${email} not found.`, success: false };
     }
 
-    const userDocRef = doc(firestore, 'users', userRecord.uid);
-    await updateDoc(userDocRef, { role: 'admin' });
+    const userDocRef = firestore.collection('users').doc(userRecord.uid);
+    await userDocRef.update({ role: 'admin' });
 
     return { message: `Successfully granted admin role to ${email}.`, success: true };
   } catch (error: any) {
@@ -39,12 +38,17 @@ export async function grantAdminRole(prevState: any, formData: FormData) {
   }
 }
 
-async function getTeamData(firestore: any, teamId: string): Promise<Team> {
-    const teamDoc = await getDoc(doc(firestore, 'federations', teamId));
-    if (!teamDoc.exists()) throw new Error(`Team ${teamId} not found`);
+async function getTeamData(firestore: FirebaseFirestore.Firestore, teamId: string): Promise<Team> {
+    const teamDocRef = firestore.collection('federations').doc(teamId);
+    const teamDoc = await teamDocRef.get();
+    
+    if (!teamDoc.exists) throw new Error(`Team ${teamId} not found`);
+    
     const teamData = teamDoc.data() as Federation;
-    const playersSnap = await getDocs(collection(firestore, 'federations', teamId, 'players'));
+    
+    const playersSnap = await teamDocRef.collection('players').get();
     const squad = playersSnap.docs.map(d => d.data() as Player);
+    
     return { ...teamData, id: teamDoc.id, squad };
 }
 
@@ -58,7 +62,7 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
 
         const result = simulateMatch(homeTeam, awayTeam);
 
-        const matchRef = doc(firestore, 'matches', matchId);
+        const matchRef = firestore.collection('matches').doc(matchId);
         const updatedMatchData = {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
@@ -67,7 +71,7 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
             playedType: 'simulated' as const,
             goals: result.goals,
         };
-        await updateDoc(matchRef, updatedMatchData);
+        await matchRef.update(updatedMatchData);
         
         return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
@@ -90,7 +94,7 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
             throw new Error('AI failed to generate match commentary.');
         }
 
-        const matchRef = doc(firestore, 'matches', matchId);
+        const matchRef = firestore.collection('matches').doc(matchId);
         const updatedMatchData = {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
@@ -100,7 +104,7 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
             goals: result.goals,
             commentary: result.commentary,
         };
-        await updateDoc(matchRef, updatedMatchData);
+        await matchRef.update(updatedMatchData);
 
         return { success: true, message: `Match ${matchId} played with commentary.` };
     } catch (error: any) {
@@ -113,18 +117,18 @@ export async function restartTournamentAction(tournamentId: string | undefined):
     try {
         const adminApp = await initializeAdminApp();
         const firestore = getFirestore(adminApp);
-        const batch = writeBatch(firestore);
+        const batch = firestore.batch();
 
         if (tournamentId) {
-            const matchesQuery = query(collection(firestore, 'matches'), where('tournamentId', '==', tournamentId));
-            const matchesSnapshot = await getDocs(matchesQuery);
+            const matchesQuery = firestore.collection('matches').where('tournamentId', '==', tournamentId);
+            const matchesSnapshot = await matchesQuery.get();
             matchesSnapshot.forEach(doc => {
                 batch.delete(doc.ref);
             });
         }
         
         if (tournamentId) {
-             const tournamentRef = doc(firestore, 'tournaments', tournamentId);
+             const tournamentRef = firestore.collection('tournaments').doc(tournamentId);
              batch.delete(tournamentRef);
         }
 
