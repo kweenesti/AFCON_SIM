@@ -55,6 +55,10 @@ export default function RegisterPage() {
           role: role,
         });
         
+        if (isAdmin) {
+            console.log("Admin account created successfully:", user.email);
+        }
+
         toast({
           title: 'Registration Successful!',
           description: 'Redirecting...',
