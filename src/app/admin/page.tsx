@@ -17,8 +17,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw } from 'lucide-react';
-import { simulateMatchAction, restartTournamentAction } from './actions';
+import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw, Bot } from 'lucide-react';
+import { simulateMatchAction, restartTournamentAction, playMatchAction } from './actions';
 import { AdminRoleForm } from './admin-role-form';
 import {
   AlertDialog,
@@ -73,11 +73,11 @@ export default function AdminPage() {
   const handleStartTournament = async () => {
     if (!federations || !firestore) return;
 
-    if (federations.length !== 8) {
-      setMessage('Need exactly 8 teams to start the tournament.');
+    if (federations.length < 8) {
+      setMessage('Need at least 8 teams to start the tournament.');
       toast({
         title: 'Error',
-        description: 'Need exactly 8 teams to start the tournament.',
+        description: 'Need at least 8 teams to start the tournament.',
         variant: 'destructive',
       });
       return;
@@ -106,7 +106,7 @@ export default function AdminPage() {
   };
 
   const generateQuarterFinals = async () => {
-    if (!federations || federations.length !== 8 || !tournament || !firestore) {
+    if (!federations || federations.length < 8 || !tournament || !firestore) {
       setMessage("Need 8 teams and a started tournament to generate matches.");
       return;
     }
@@ -269,6 +269,25 @@ export default function AdminPage() {
     });
   };
 
+  const handlePlayMatch = (match: Match) => {
+    startTransition(async () => {
+      const result = await playMatchAction(match.id, match.homeTeamId, match.awayTeamId);
+      if (result.success) {
+        toast({
+          title: 'Match Played!',
+          description: `Commentary generated for ${match.homeTeamName} vs ${match.awayTeamName}.`,
+        });
+      } else {
+        toast({
+          title: 'Play Match Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
+
   const handleRestartTournament = () => {
     startTransition(async () => {
         const result = await restartTournamentAction(tournament?.id);
@@ -306,7 +325,7 @@ export default function AdminPage() {
   }
   
   const hasTournamentStarted = !!tournament;
-  const canStartTournament = (federations?.length ?? 0) === 8 && !hasTournamentStarted;
+  const canStartTournament = (federations?.length || 0) >= 8 && !hasTournamentStarted;
   
   const quarterFinals = matches?.filter(m => m.stage === 'quarter-finals') || [];
   const semiFinals = matches?.filter(m => m.stage === 'semi-finals') || [];
@@ -377,14 +396,14 @@ export default function AdminPage() {
             <CardHeader>
               <CardTitle>Tournament Control</CardTitle>
               <CardDescription>
-                Manage the tournament lifecycle.
+                Manage the tournament lifecycle. You need at least 8 teams to start.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-start gap-4">
               <div className="flex flex-wrap gap-4">
                 <Button onClick={handleStartTournament} disabled={!canStartTournament || isPending} variant="secondary">
                   <PlayCircle className="mr-2" />
-                  Start Tournament (8 teams required)
+                  Start Tournament
                 </Button>
                 <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches || isPending} variant="secondary">
                   <Swords className="mr-2" />
@@ -445,10 +464,16 @@ export default function AdminPage() {
                          <span className="font-medium text-left">{match.awayTeamName}</span>
                        </Link>
                        {!match.played && (
-                         <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending} className="ml-4">
+                        <div className="flex gap-2 ml-4">
+                         <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending}>
                            <Zap className="mr-2 h-4 w-4" />
-                           {isPending ? 'Simulating...' : 'Simulate'}
+                           {isPending ? '...' : 'Simulate'}
                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => handlePlayMatch(match)} disabled={isPending}>
+                           <Bot className="mr-2 h-4 w-4" />
+                           {isPending ? '...' : 'Play'}
+                         </Button>
+                        </div>
                        )}
                     </li>
                   ))}

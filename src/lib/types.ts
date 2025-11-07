@@ -63,6 +63,8 @@ export interface Match {
     awayScore?: number;
     winnerId?: string;
     played: boolean;
+    playedType?: 'simulated' | 'played';
+    commentary?: string;
     createdAt: any;
     goals?: Goal[];
 }

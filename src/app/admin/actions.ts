@@ -6,6 +6,7 @@ import { initializeAdminApp } from '@/lib/firebase-admin';
 import type { Federation, Match, Player, Team, Tournament } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
+import { generateMatchCommentary } from '@/ai/flows/generate-match-commentary';
 
 
 export async function grantAdminRole(prevState: any, formData: FormData) {
@@ -36,44 +37,80 @@ export async function grantAdminRole(prevState: any, formData: FormData) {
   }
 }
 
+async function getTeamData(firestore: DocumentData, teamId: string): Promise<Team> {
+    const teamDoc = await getDoc(doc(firestore, 'federations', teamId));
+    if (!teamDoc.exists()) throw new Error(`Team ${teamId} not found`);
+    const teamData = teamDoc.data() as Federation;
+    const playersSnap = await getDocs(collection(firestore, 'federations', teamId, 'players'));
+    const squad = playersSnap.docs.map(d => d.data() as Player);
+    return { ...teamData, id: teamDoc.id, squad };
+}
+
 export async function simulateMatchAction(matchId: string, homeTeamId: string, awayTeamId: string) {
     try {
         const adminApp = await initializeAdminApp();
         const firestore = getFirestore(adminApp);
 
-        // Fetch home team data
-        const homeTeamDoc = await getDoc(doc(firestore, 'federations', homeTeamId));
-        if (!homeTeamDoc.exists()) throw new Error(`Home team ${homeTeamId} not found`);
-        const homeTeamData = homeTeamDoc.data() as Federation;
-        const homePlayersSnap = await getDocs(collection(firestore, 'federations', homeTeamId, 'players'));
-        const homeSquad = homePlayersSnap.docs.map(d => d.data() as Player);
-        const homeTeam: Team = { ...homeTeamData, id: homeTeamDoc.id, squad: homeSquad };
-        
-        // Fetch away team data
-        const awayTeamDoc = await getDoc(doc(firestore, 'federations', awayTeamId));
-        if (!awayTeamDoc.exists()) throw new Error(`Away team ${awayTeamId} not found`);
-        const awayTeamData = awayTeamDoc.data() as Federation;
-        const awayPlayersSnap = await getDocs(collection(firestore, 'federations', awayTeamId, 'players'));
-        const awaySquad = awayPlayersSnap.docs.map(d => d.data() as Player);
-        const awayTeam: Team = { ...awayTeamData, id: awayTeamDoc.id, squad: awaySquad };
+        const homeTeam = await getTeamData(firestore, homeTeamId);
+        const awayTeam = await getTeamData(firestore, awayTeamId);
 
-        // Simulate match
         const result = simulateMatch(homeTeam, awayTeam);
 
-        // Update match document
         const matchRef = doc(firestore, 'matches', matchId);
         await updateDoc(matchRef, {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
             winnerId: result.winnerId,
             played: true,
+            playedType: 'simulated',
             goals: result.goals,
         });
+
+        // Simulate sending emails
+        console.log(`[EMAIL SIM] Match result notification sent to ${homeTeam.representativeEmail} for match ${matchId}.`);
+        console.log(`[EMAIL SIM] Match result notification sent to ${awayTeam.representativeEmail} for match ${matchId}.`);
 
         return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
         console.error('Error simulating match:', error);
         return { success: false, message: error.message || 'An unexpected error occurred.' };
+    }
+}
+
+export async function playMatchAction(matchId: string, homeTeamId: string, awayTeamId: string) {
+    try {
+        const adminApp = await initializeAdminApp();
+        const firestore = getFirestore(adminApp);
+
+        const homeTeam = await getTeamData(firestore, homeTeamId);
+        const awayTeam = await getTeamData(firestore, awayTeamId);
+
+        // Call the AI to generate commentary and result
+        const result = await generateMatchCommentary({ homeTeam, awayTeam });
+        
+        if (!result) {
+            throw new Error('AI failed to generate match commentary.');
+        }
+
+        const matchRef = doc(firestore, 'matches', matchId);
+        await updateDoc(matchRef, {
+            homeScore: result.homeScore,
+            awayScore: result.awayScore,
+            winnerId: result.winnerId,
+            played: true,
+            playedType: 'played',
+            goals: result.goals,
+            commentary: result.commentary,
+        });
+        
+        // Simulate sending emails
+        console.log(`[EMAIL SIM] Match result and commentary notification sent to ${homeTeam.representativeEmail} for match ${matchId}.`);
+        console.log(`[EMAIL SIM] Match result and commentary notification sent to ${awayTeam.representativeEmail} for match ${matchId}.`);
+
+        return { success: true, message: `Match ${matchId} played with commentary.` };
+    } catch (error: any) {
+        console.error('Error playing match:', error);
+        return { success: false, message: error.message || 'An unexpected error occurred while playing the match.' };
     }
 }
 
