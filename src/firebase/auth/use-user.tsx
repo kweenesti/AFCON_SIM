@@ -38,23 +38,27 @@ export const useUser = (): UserHookResult => {
   const [combinedUser, setCombinedUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading || isProfileLoading) {
-      return;
+    if (isAuthLoading) {
+      return; // Wait for the initial auth check to complete
     }
 
     if (authUser) {
+      // Auth user exists, now we can combine with the profile, even if it's still loading
       setCombinedUser({
         ...authUser,
-        profile: userProfile || undefined,
+        profile: userProfile || undefined, // Attach profile if available
       });
     } else {
+      // No auth user, so set combined user to null
       setCombinedUser(null);
     }
-  }, [authUser, userProfile, isAuthLoading, isProfileLoading]);
+  }, [authUser, userProfile, isAuthLoading]);
   
+  // The primary loading state should ONLY reflect the initial authentication check.
+  // The UI can separately handle the `isProfileLoading` state if needed.
   return {
     user: combinedUser,
-    isUserLoading: isAuthLoading || (authUser != null && isProfileLoading),
+    isUserLoading: isAuthLoading,
     userError: authError || profileError,
   };
 };
