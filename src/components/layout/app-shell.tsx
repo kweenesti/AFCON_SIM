@@ -53,6 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Define navigation items based on user role
   let navItems = [];
+  const isAdminPage = pathname === '/admin';
 
   if (isRegistered) {
     if (user.profile?.role === 'admin') {
@@ -136,9 +137,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="flex h-12 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
            {isRegistered ? (
-             <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard">Go to Dashboard</Link>
-             </Button>
+             // For admins on the admin page, this button is not needed.
+             !(user.profile?.role === 'admin' && isAdminPage) && (
+                 <Button variant="ghost" size="sm" asChild>
+                    <Link href="/dashboard">Go to Dashboard</Link>
+                 </Button>
+             )
            ) : (
              <Button variant="ghost" size="sm" onClick={handleLogin}>
                 Sign In

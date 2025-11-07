@@ -70,6 +70,10 @@ export default function DashboardPage() {
     if (!isUserLoading && !user) {
       router.replace('/');
     }
+    // Redirect admins away from the federation dashboard
+    if (!isUserLoading && user?.profile?.role === 'admin') {
+      router.replace('/admin');
+    }
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
@@ -138,7 +142,8 @@ export default function DashboardPage() {
   const isLoading =
     isUserLoading || isFederationLoading || (federation && isSquadLoading);
 
-  if (isLoading && !federation) {
+  // If loading, or if the user is an admin who will be redirected, show a loader.
+  if (isLoading || (user && user.profile?.role === 'admin')) {
     return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">

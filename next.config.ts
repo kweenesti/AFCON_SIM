@@ -5,9 +5,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  serverActions: {
-    bodySizeLimit: 'unlimited',
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
