@@ -49,7 +49,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // Do not run any redirect logic until the user's auth status is fully loaded.
+    // CRITICAL FIX: Do not execute any logic until the authentication state is confirmed.
     if (isUserLoading) {
       return;
     }
@@ -57,60 +57,59 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
 
-    // If the user is not logged in, they should be on a public page.
-    // If they are on a protected page, redirect to login.
+    // If the user is NOT logged in...
     if (!user) {
+      // and they are not on a public page, redirect them to login.
       if (!isPublicPage) {
         router.replace('/login');
       }
       return;
     }
 
-    // If the user IS logged in, they should NOT be on the main public pages.
-    // Redirect them to their appropriate dashboard.
-    if (pathname === '/' || pathname === '/login' || pathname === '/register') {
-      router.replace(user.profile?.role === 'admin' ? '/admin' : '/dashboard');
-      return;
+    // If the user IS logged in...
+    const isAdmin = user.profile?.role === 'admin';
+    const isFederation = user.profile?.role === 'federation';
+
+    // and they are on a public-only page (like login), redirect them to their dashboard.
+    if (publicPages.includes(pathname)) {
+        router.replace(isAdmin ? '/admin' : '/dashboard');
+        return;
     }
     
-    // If the user is an admin, ensure they are on an admin-accessible page.
-    // If not, redirect them to the main admin dashboard.
-    if (user.profile?.role === 'admin') {
-      const isAdminPage = ['/admin', '/schedule', '/matches', '/tournament'].some(p => pathname.startsWith(p));
-      if (!isAdminPage) {
+    // If the user is an admin but on a page only for federation users...
+    if (isAdmin && pathname.startsWith('/dashboard')) {
         router.replace('/admin');
-      }
-    } 
-    // If the user is a federation user, ensure they are on a valid federation page.
-    // If not, redirect them to their main dashboard.
-    else if (user.profile?.role === 'federation') {
-      const isFederationPage = ['/dashboard', '/matches', '/tournament'].some(p => pathname.startsWith(p));
-      if (!isFederationPage) {
+        return;
+    }
+    
+    // If the user is a federation user but on a page only for admins...
+    if (isFederation && pathname.startsWith('/admin')) {
         router.replace('/dashboard');
-      }
+        return;
     }
 
   }, [user, isUserLoading, pathname, router]);
 
+
   const handleLogout = () => {
     if (auth) {
       signOut(auth).then(() => {
-        router.push('/');
+        router.push('/login');
       });
     }
   };
 
-  // While loading, show a skeleton screen to prevent flashing content or incorrect redirects.
+  // While loading authentication state, show a full-page skeleton. This is key to preventing the redirect.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
   
-  // If not loading and not authenticated, render content for public pages (like login/register).
+  // If not loading and not authenticated, render children for public pages (like login/register).
   if (!user) {
     return <>{children}</>;
   }
 
-
+  // If we reach here, the user is logged in and auth state is confirmed. Render the full app shell.
   const isAdmin = user?.profile?.role === 'admin';
 
   let navItems = [];
@@ -142,7 +141,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href)}
+                    isActive={pathname === item.href}
                     tooltip={item.label}
                   >
                     <item.icon />
