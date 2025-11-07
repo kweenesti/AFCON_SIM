@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
-import type { Federation, Player, Team, PlayerPosition } from '@/lib/types';
+import type { Federation, Player, Team, PlayerPosition, Match } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
 import { generateMatchCommentary } from '@/ai/flows/generate-match-commentary';
@@ -52,15 +52,13 @@ async function getTeamData(firestore: FirebaseFirestore.Firestore, teamId: strin
     const playersSnap = await teamDocRef.collection('players').get();
     const squad = playersSnap.docs.map(d => {
         const playerData = d.data();
-        // Ensure the federationId is correctly mapped
         return {
             ...(playerData as Player),
-            id: d.id, // Use the actual document ID
-            federationId: teamId, // Explicitly set the correct federationId
+            id: d.id,
+            federationId: teamId,
         };
     });
     
-    // Explicitly construct the team object to ensure correct field names
     const team: Team = {
         id: teamDoc.id,
         representativeUid: teamData.representativeUid,
@@ -75,6 +73,55 @@ async function getTeamData(firestore: FirebaseFirestore.Firestore, teamId: strin
     return team;
 }
 
+async function sendMatchResultEmail(
+    firestore: FirebaseFirestore.Firestore, 
+    match: Match, 
+    homeTeam: Team, 
+    awayTeam: Team
+) {
+    const mailCollection = firestore.collection('mail');
+
+    const federations = [
+        { name: homeTeam.countryName, email: homeTeam.representativeEmail },
+        { name: awayTeam.countryName, email: awayTeam.representativeEmail }
+    ];
+
+    const subject = `Match Result: ${match.homeTeamName} vs ${match.awayTeamName}`;
+    const body = `
+Dear Federation Representative,
+
+The match between ${match.homeTeamName} and ${match.awayTeamName} has concluded.
+
+Final Score:
+${match.homeTeamName}: ${match.homeScore}
+${match.awayTeamName}: ${match.awayScore}
+
+This is an automated notification from the African Nations Tournament Simulator.
+
+Regards,
+Tournament Administration
+    `;
+    
+    const batch = firestore.batch();
+
+    federations.forEach(federation => {
+        if (federation.email) {
+            const mailDocRef = mailCollection.doc();
+            batch.set(mailDocRef, {
+                to: federation.email,
+                message: {
+                    subject: subject,
+                    text: body,
+                },
+                createdAt: FieldValue.serverTimestamp(),
+            });
+        }
+    });
+    
+    await batch.commit();
+}
+
+
 export async function simulateMatchAction(matchId: string, homeTeamId: string, awayTeamId: string) {
     try {
         const adminApp = await initializeAdminApp();
@@ -86,7 +133,7 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
         const result = simulateMatch(homeTeam, awayTeam);
 
         const matchRef = firestore.collection('matches').doc(matchId);
-        const updatedMatchData = {
+        const updatedMatchData: Partial<Match> = {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
             winnerId: result.winnerId,
@@ -96,6 +143,11 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
         };
         await matchRef.update(updatedMatchData);
         
+        // After updating the match, send the email
+        const fullMatchData = (await matchRef.get()).data() as Match;
+        await sendMatchResultEmail(firestore, { ...fullMatchData, ...updatedMatchData }, homeTeam, awayTeam);
+
+
         return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
         console.error('Error simulating match:', error);
@@ -118,7 +170,7 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
         }
 
         const matchRef = firestore.collection('matches').doc(matchId);
-        const updatedMatchData = {
+        const updatedMatchData: Partial<Match> = {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
             winnerId: result.winnerId,
@@ -128,6 +180,10 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
             commentary: result.commentary,
         };
         await matchRef.update(updatedMatchData);
+
+        // After updating the match, send the email
+        const fullMatchData = (await matchRef.get()).data() as Match;
+        await sendMatchResultEmail(firestore, { ...fullMatchData, ...updatedMatchData }, homeTeam, awayTeam);
 
         return { success: true, message: `Match ${matchId} played with commentary.` };
     } catch (error: any) {
@@ -252,3 +308,5 @@ export async function seedFederationsAction(): Promise<{ success: boolean; messa
         return { success: false, message: error.message || "An unexpected error occurred during seeding." };
     }
 }
+
+    

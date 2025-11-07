@@ -59,5 +59,14 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // Mail collection for sending notifications. Only admins can write.
+    match /mail/{mailId} {
+        allow read: if isAdmin();
+        allow create: if isAdmin();
+        allow update, delete: if false;
+    }
   }
 }
+
+    
