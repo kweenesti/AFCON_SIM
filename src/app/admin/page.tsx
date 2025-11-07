@@ -43,14 +43,14 @@ export default function AdminPage() {
 
   // Fetch all federations
   const federationsRef = useMemoFirebase(
-    () => (user?.profile?.role === 'admin' ? collection(firestore, 'federations') : null),
+    () => (firestore && user?.profile?.role === 'admin' ? collection(firestore, 'federations') : null),
     [firestore, user?.profile?.role]
   );
   const { data: federations, isLoading: isFederationsLoading } = useCollection<Federation>(federationsRef);
 
   // Fetch the latest tournament
   const latestTournamentQuery = useMemoFirebase(
-    () => user?.profile?.role === 'admin' ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null,
+    () => user?.profile?.role === 'admin' && firestore ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null,
     [firestore, user?.profile?.role]
   );
   const { data: tournaments, isLoading: isTournamentLoading, error: tournamentError } = useCollection<Tournament>(latestTournamentQuery);
@@ -58,7 +58,7 @@ export default function AdminPage() {
 
    // Fetch matches for the current tournament
    const matchesQuery = useMemoFirebase(
-    () => (tournament ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
+    () => (tournament && firestore ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
     [firestore, tournament]
   );
   const { data: matches, isLoading: areMatchesLoading } = useCollection<Match>(matchesQuery);
@@ -464,3 +464,5 @@ export default function AdminPage() {
     </AppShell>
   );
 }
+
+    
