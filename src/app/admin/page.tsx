@@ -40,7 +40,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  // Redirect non-admins only after user loading is complete and role is confirmed non-admin
+  // Page Guard: Redirect non-admins. This is the most stable approach.
   useEffect(() => {
     if (!isUserLoading && user?.profile?.role !== 'admin') {
       router.replace('/dashboard');
@@ -309,8 +309,9 @@ export default function AdminPage() {
   };
 
 
-  // Show a loader while verifying user role.
-  if (isUserLoading || !user?.profile) {
+  // Show a loader while verifying user role, or if user is not an admin.
+  // This prevents flashing the admin content to a non-admin user before redirect.
+  if (isUserLoading || user?.profile?.role !== 'admin') {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">

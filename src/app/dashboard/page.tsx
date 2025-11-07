@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
 
-  // Redirect admins away from the federation dashboard
+  // Page Guard: Redirect admins. This is the most stable approach.
   useEffect(() => {
     if (!isUserLoading && user?.profile?.role === 'admin') {
       router.replace('/admin');
@@ -142,7 +142,7 @@ export default function DashboardPage() {
   };
   
   // Show a loading skeleton while we verify user, role and data
-  // or if user is an admin (who will be redirected)
+  // or if user is an admin (who will be redirected away)
   if (isUserLoading || isFederationLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>

@@ -38,35 +38,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
 
-  // This is the single source of truth for all role-based redirects.
-  useEffect(() => {
-    // Only run this logic when user loading is complete and we have a user object with a profile.
-    if (!isUserLoading && user?.profile) {
-      const isAdmin = user.profile.role === 'admin';
-      const isFederation = user.profile.role === 'federation';
-
-      // Define page categories
-      const publicPages = ['/', '/login', '/register'];
-      const adminOnlyPages = ['/admin', '/schedule'];
-      const adminAllowedPages = [...adminOnlyPages, '/matches', '/tournament']; // Pages admins can be on
-      const isOnPublicPage = publicPages.includes(pathname);
-      const isOnAdminOnlyPage = adminOnlyPages.includes(pathname);
-
-
-      if (isAdmin) {
-        // If an admin is on any page that is NOT an admin-allowed page, redirect them to /admin.
-        if (!adminAllowedPages.some(p => pathname.startsWith(p))) {
-          router.replace('/admin');
-        }
-      } else if (isFederation) {
-        // If a federation user is on an admin-only page OR a public page, redirect to their dashboard.
-        if (isOnAdminOnlyPage || isOnPublicPage) {
-           router.replace('/dashboard');
-        }
-      }
-    }
-  }, [user, isUserLoading, pathname, router]);
-
   const handleLogout = () => {
     signOut(auth).then(() => {
       router.push('/');

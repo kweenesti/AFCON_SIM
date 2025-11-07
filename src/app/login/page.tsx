@@ -48,7 +48,7 @@ export default function LoginPage() {
 
       toast({
         title: 'Sign In Successful!',
-        description: 'Redirecting to your dashboard...',
+        description: 'Redirecting...',
       });
 
       if (userProfileSnap.exists()) {
