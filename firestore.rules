@@ -20,7 +20,7 @@
  * - Matches can only be created and updated by admins.
  * - Authorization independence is achieved by denormalizing `federationId` into the `Player` documents.
  * - Data validation is limited to authorization-critical fields (e.g., `federationId` on Player creation).
- * - Listing of federations is disallowed for security, except for admins.
+ * - Listing of federations is allowed for any authenticated user.
  *
  * Denormalization for Authorization:
  * - The `Player` documents contain a denormalized `federationId` field, which matches the parent federation's document ID. This allows direct authorization checks without needing to perform additional `get()` calls.
@@ -74,14 +74,14 @@ service cloud.firestore {
      * @description Enforces user-ownership for federation data based on the document ID matching the user's UID.
      * @path /federations/{federationId}
      * @allow (get) - Anyone can read individual federation data.
-     * @allow (list) - List is for admins only.
+     * @allow (list) - List is for authenticated users only.
      * @allow (create) - An authenticated user can create a federation if their UID matches the document ID.
      * @allow (update, delete) - The user whose UID matches the document ID can update or delete it.
      * @principle Enforces document ownership for writes using the document ID, while allowing public reads of individual documents.
      */
     match /federations/{federationId} {
       allow get: if true;
-      allow list: if isAdmin();
+      allow list: if isSignedIn();
       allow create: if request.auth != null && request.auth.uid == federationId;
       allow update, delete: if request.auth != null && request.auth.uid == federationId;
     }
