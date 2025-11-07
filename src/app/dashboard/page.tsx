@@ -30,7 +30,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
 
-
 export default function DashboardPage() {
   const router = useRouter();
   const firestore = useFirestore();
@@ -42,30 +41,38 @@ export default function DashboardPage() {
     () => (user ? doc(firestore, 'federations', user.uid) : null),
     [firestore, user]
   );
-  const { data: federation, isLoading: isFederationLoading } = useDoc<Federation>(federationRef);
+  const { data: federation, isLoading: isFederationLoading } =
+    useDoc<Federation>(federationRef);
 
   const playersRef = useMemoFirebase(
     () =>
-      federation ? collection(firestore, 'federations', federation.id, 'players') : null,
+      federation
+        ? collection(firestore, 'federations', federation.id, 'players')
+        : null,
     [firestore, federation]
   );
-  const { data: squad, isLoading: isSquadLoading, setData: setSquad } =
-    useCollection<Player>(playersRef);
-  
+  const {
+    data: squad,
+    isLoading: isSquadLoading,
+    setData: setSquad,
+  } = useCollection<Player>(playersRef);
+
   const formMethods = useForm({
+    // Use `values` to ensure the form reacts to async data loading
     values: {
-        managerName: federation?.managerName || ''
-    }
+      managerName: federation?.managerName || '',
+    },
   });
 
-  const { setValue } = formMethods;
+  const { reset } = formMethods;
 
+  // This effect safely resets the form once the federation data is loaded.
+  // This is the correct pattern for handling async default values with react-hook-form.
   useEffect(() => {
     if (federation) {
-        setValue('managerName', federation.managerName);
+      reset({ managerName: federation.managerName });
     }
-  }, [federation, setValue]);
-
+  }, [federation, reset]);
 
   const teamRating = useMemo(() => computeTeamRating(squad || []), [squad]);
 
@@ -87,59 +94,64 @@ export default function DashboardPage() {
   };
 
   const handleSaveChanges = (formData: { managerName: string }) => {
-     startSaving(async () => {
-        if (!user || !federation || !firestore || !squad) {
+    startSaving(async () => {
+      if (!user || !federation || !firestore || !squad) {
         toast({
-            title: 'Error',
-            description: 'You must be logged in and part of a federation.',
-            variant: 'destructive',
+          title: 'Error',
+          description: 'You must be logged in and part of a federation.',
+          variant: 'destructive',
         });
         return;
-        }
+      }
 
-        const batch = writeBatch(firestore);
-        
-        // 1. Update manager name in federation document
-        const federationDocRef = doc(firestore, 'federations', federation.id);
-        batch.update(federationDocRef, { managerName: formData.managerName });
+      const batch = writeBatch(firestore);
 
-        // 2. Overwrite the players subcollection with the new squad
-        const playersCollectionRef = collection(
-          firestore,
-          'federations',
-          federation.id,
-          'players'
-        );
+      // 1. Update manager name in federation document
+      const federationDocRef = doc(firestore, 'federations', federation.id);
+      batch.update(federationDocRef, { managerName: formData.managerName });
 
-        // First, retrieve all existing player documents to delete them
-        const existingPlayersSnapshot = await getDocs(playersCollectionRef);
-        existingPlayersSnapshot.forEach(playerDoc => {
-            batch.delete(playerDoc.ref);
+      // 2. Overwrite the players subcollection with the new squad
+      const playersCollectionRef = collection(
+        firestore,
+        'federations',
+        federation.id,
+        'players'
+      );
+
+      // First, retrieve all existing player documents to delete them
+      const existingPlayersSnapshot = await getDocs(playersCollectionRef);
+      existingPlayersSnapshot.forEach((playerDoc) => {
+        batch.delete(playerDoc.ref);
+      });
+
+      // Set/overwrite each player document in the new squad
+      squad.forEach((player) => {
+        const playerDocRef = doc(playersCollectionRef);
+        batch.set(playerDocRef, {
+          ...player,
+          id: playerDocRef.id,
+          federationId: federation.id,
         });
+      });
 
-        // Set/overwrite each player document in the new squad
-        squad.forEach((player) => {
-          const playerDocRef = doc(playersCollectionRef);
-          batch.set(playerDocRef, { ...player, id: playerDocRef.id, federationId: federation.id });
+      try {
+        await batch.commit();
+        toast({
+          title: 'Success!',
+          description: 'Your team information has been saved.',
         });
-
-        try {
-            await batch.commit();
-            toast({
-                title: 'Success!',
-                description: 'Your team information has been saved.',
-            });
-        } catch (error: any) {
-             toast({
-                title: 'Save Error',
-                description: error.message || 'Could not save your changes.',
-                variant: 'destructive',
-            });
-        }
+      } catch (error: any) {
+        toast({
+          title: 'Save Error',
+          description: error.message || 'Could not save your changes.',
+          variant: 'destructive',
+        });
+      }
     });
   };
 
-  const isLoading = isUserLoading || isFederationLoading || (federation && isSquadLoading);
+  const isLoading =
+    isUserLoading || isFederationLoading || (federation && isSquadLoading);
 
   if (isLoading && !federation) {
     return (
@@ -154,13 +166,15 @@ export default function DashboardPage() {
   }
 
   if (!user || (!federation && !isFederationLoading)) {
-     return (
-        <AppShell>
-            <main className="container mx-auto p-4 md:p-8">
-                 <p>Federation data not found. Please re-register or contact support.</p>
-            </main>
-        </AppShell>
-     )
+    return (
+      <AppShell>
+        <main className="container mx-auto p-4 md:p-8">
+          <p>
+            Federation data not found. Please re-register or contact support.
+          </p>
+        </main>
+      </AppShell>
+    );
   }
 
   if (!federation) return null;
@@ -169,7 +183,10 @@ export default function DashboardPage() {
     <AppShell>
       <main className="container mx-auto p-4 md:p-8">
         <FormProvider {...formMethods}>
-          <form onSubmit={formMethods.handleSubmit(handleSaveChanges)} className="space-y-8">
+          <form
+            onSubmit={formMethods.handleSubmit(handleSaveChanges)}
+            className="space-y-8"
+          >
             <h1 className="font-headline text-3xl font-bold md:text-4xl">
               {federation.countryName} National Team Dashboard
             </h1>
@@ -178,7 +195,8 @@ export default function DashboardPage() {
               <CardHeader>
                 <CardTitle>Team Management</CardTitle>
                 <CardDescription>
-                  Update your manager and generate a new squad for the tournament.
+                  Update your manager and generate a new squad for the
+                  tournament.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -191,7 +209,11 @@ export default function DashboardPage() {
                       {...formMethods.register('managerName')}
                     />
                   </div>
-                  <Button type="button" onClick={handleGenerateSquad} variant="secondary">
+                  <Button
+                    type="button"
+                    onClick={handleGenerateSquad}
+                    variant="secondary"
+                  >
                     <Sparkles className="mr-2" />
                     Generate New Squad
                   </Button>
