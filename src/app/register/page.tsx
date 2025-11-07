@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -17,25 +16,24 @@ import { useToast } from '@/hooks/use-toast';
 import {
   useAuth,
   useFirestore,
-  setDocumentNonBlocking,
 } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
+import Link from 'next/link';
 
-export default function Register() {
+export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [countryName, setCountryName] = useState('');
   const router = useRouter();
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
 
   async function handleRegister() {
-    if (!name || !email || !password || !countryName) {
+    if (!name || !email || !password) {
       toast({
         title: 'Missing Fields',
         description: 'Please fill out all fields.',
@@ -48,24 +46,30 @@ export default function Register() {
       const user = res.user;
 
       if (user) {
+        const isAdmin = email === 'admin@tournament.com';
+        const role = isAdmin ? 'admin' : 'federation';
+
         // Create the UserProfile document
         const userProfileRef = doc(firestore, 'users', user.uid);
-        setDocumentNonBlocking(userProfileRef, {
+        await setDoc(userProfileRef, {
           id: user.uid,
           displayName: name,
           email: user.email,
-          role: 'federation',
-        }, { merge: true });
+          role: role,
+        });
 
-        // Create the Federation document
-        const federationRef = doc(firestore, 'federations', user.uid);
-        setDocumentNonBlocking(federationRef, {
-          representativeName: name,
-          representativeEmail: email,
-          countryId: countryName,
-          countryName: countryName,
-          managerName: 'TBD', // Manager is set in the full form
-        }, { merge: true });
+        // If it's a regular user, create a federation document for them
+        if (!isAdmin) {
+          const federationRef = doc(firestore, 'federations', user.uid);
+          await setDoc(federationRef, {
+            id: user.uid,
+            representativeName: name,
+            representativeEmail: email,
+            countryId: '', // User will select this on the full form
+            countryName: '', // User will select this
+            managerName: 'TBD', // Manager is set in the full form
+          }, { merge: true });
+        }
         
         toast({
           title: 'Registration Successful!',
@@ -73,7 +77,8 @@ export default function Register() {
         });
         router.push('/dashboard');
       }
-    } catch (error: any) {
+    } catch (error: any)
+    {
       console.error(error);
       toast({
         title: 'Registration Failed',
@@ -90,7 +95,11 @@ export default function Register() {
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
           <CardDescription>
-            Enter your details to register your federation.
+            Enter your details to create an account. Already have one?{' '}
+            <Link href="/login" className="underline">
+              Sign in
+            </Link>
+            .
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -123,16 +132,7 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="federation">Federation / Country</Label>
-            <Input
-              id="federation"
-              placeholder="e.g., Nigeria"
-              value={countryName}
-              onChange={(e) => setCountryName(e.target.value)}
-            />
-          </div>
-          <Button onClick={handleRegister} className="w-full" variant="accent">
+          <Button onClick={handleRegister} className="w-full">
             Register
           </Button>
         </CardContent>

@@ -5,11 +5,12 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { RegistrationForm } from '@/components/team/registration-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { useUser } from '@/firebase';
 import { AppShell } from '@/components/layout/app-shell';
+import Link from 'next/link';
 
 export default function Home() {
   const router = useRouter();
@@ -39,8 +40,6 @@ export default function Home() {
   }
   
   // If there's no user, show the public registration page.
-  // The AppShell now handles the redirect for logged-in users, so this component
-  // will only render for logged-out users.
   return (
     <AppShell>
       <main className="container mx-auto px-4 py-8">
@@ -77,6 +76,13 @@ export default function Home() {
                 <CardTitle className="font-headline text-2xl">
                   Register Your Federation
                 </CardTitle>
+                <CardDescription>
+                  Already have an account?{' '}
+                  <Link href="/login" className="underline">
+                    Sign in here
+                  </Link>
+                  .
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <RegistrationForm />

@@ -49,33 +49,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login');
   }
 
-  if (isUserLoading) {
-    return (
-      <SidebarProvider>
-        <Sidebar>
-          <SidebarHeader>
-            <Logo />
-          </SidebarHeader>
-          <SidebarContent className="p-2">
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>
-          <header className="flex h-12 items-center justify-start gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
-            <SidebarTrigger className="md:hidden" />
-          </header>
-          <div className="flex-1 overflow-auto p-8">
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    );
-  }
-
   const isRegistered = !!user;
 
   // Define navigation items based on user role
@@ -102,7 +75,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Logged-out visitor
     navItems = [
       { href: '/', label: 'Register', icon: FilePlus },
-      { href: '/login', label: 'Sign In', icon: LogIn },
       { href: '/matches', label: 'Matches', icon: Swords },
       { href: '/tournament', label: 'Tournament', icon: Trophy },
     ];
@@ -129,6 +101,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuItem>
             ))}
+             {isUserLoading && (
+              <div className="flex flex-col gap-2 p-2">
+                 <Skeleton className="h-8 w-full" />
+                 <Skeleton className="h-8 w-full" />
+                 <Skeleton className="h-8 w-full" />
+              </div>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -141,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-          ) : (
+          ) : !isUserLoading ? (
              <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleLogin} tooltip="Sign In">
@@ -150,11 +129,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-          )}
+          ) : null}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 items-center justify-start gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
+        <header className="flex h-12 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
            {isRegistered ? (
              <Button variant="ghost" size="sm" asChild>

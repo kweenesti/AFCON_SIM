@@ -171,12 +171,12 @@ export function RegistrationForm() {
       const user = userCredential.user;
 
       if (user) {
-        const isAminUser = data.representativeEmail === 'admin@tournament.com';
-        const role = isAminUser ? 'admin' : 'federation';
+        const role = 'federation';
 
         // Create federation doc with the user's UID as the doc ID.
         const federationRef = doc(firestore, 'federations', user.uid);
-        const federationData: Omit<Federation, 'id' | 'representativeUid'> = {
+        const federationData = {
+          id: user.uid,
           representativeName: data.representativeName,
           representativeEmail: data.representativeEmail,
           countryId: data.countryName,
@@ -451,14 +451,14 @@ export function RegistrationForm() {
           )}
 
           {step < 2 && (
-            <Button type="button" variant="accent" onClick={handleNext}>
+            <Button type="button" onClick={handleNext}>
               Next
               <ArrowRight />
             </Button>
           )}
 
           {step === 2 && (
-            <Button type="submit" variant="accent">
+            <Button type="submit">
               Register Team
               <Star />
             </Button>

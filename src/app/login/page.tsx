@@ -81,12 +81,12 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <Button onClick={handleSignIn} className="w-full" variant="accent">
+          <Button onClick={handleSignIn} className="w-full">
             Sign In
           </Button>
           <div className="pt-4 text-center text-sm">
             Don't have an account?{' '}
-            <Link href="/" className="underline">
+            <Link href="/register" className="underline">
               Register here
             </Link>
           </div>
