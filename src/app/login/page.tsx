@@ -13,19 +13,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import Link from 'next/link';
+import { initializeFirebase } from '@/firebase';
+
+// Initialize Firebase on the client
+const { auth, firestore } = initializeFirebase();
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   async function handleSignIn() {

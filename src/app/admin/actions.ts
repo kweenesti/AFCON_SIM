@@ -2,7 +2,8 @@
 'use server';
 import 'dotenv/config';
 
-import { getFirestore, collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, DocumentData, collectionGroup } from 'firebase/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import { collection, query, where, getDocs, writeBatch, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, DocumentData, collectionGroup } from 'firebase/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
 import type { Federation, Match, Player, Team, Tournament } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
@@ -38,7 +39,7 @@ export async function grantAdminRole(prevState: any, formData: FormData) {
   }
 }
 
-async function getTeamData(firestore: DocumentData, teamId: string): Promise<Team> {
+async function getTeamData(firestore: any, teamId: string): Promise<Team> {
     const teamDoc = await getDoc(doc(firestore, 'federations', teamId));
     if (!teamDoc.exists()) throw new Error(`Team ${teamId} not found`);
     const teamData = teamDoc.data() as Federation;

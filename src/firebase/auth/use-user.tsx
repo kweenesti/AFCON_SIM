@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -17,15 +18,11 @@ export interface UserHookResult {
 }
 
 export const useUser = (): UserHookResult => {
-  const {
-    user: authUser,
-    isUserLoading: isAuthLoading,
-    userError: authError,
-  } = useFirebase();
+  const { user: authUser, isUserLoading: isAuthLoading, userError: authError } = useFirebase();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(
-    () => (authUser ? doc(firestore, 'users', authUser.uid) : null),
+    () => (authUser && firestore ? doc(firestore, 'users', authUser.uid) : null),
     [firestore, authUser]
   );
   
@@ -36,31 +33,27 @@ export const useUser = (): UserHookResult => {
   } = useDoc<UserProfile>(userProfileRef);
   
   const [combinedUser, setCombinedUser] = useState<AuthUser | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
-    // Correctly determine the overall loading state. It's loading if auth is loading,
-    // OR if we have an auth user but are still waiting for their profile.
-    const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
-    setIsUserLoading(isLoading);
+    if (isAuthLoading || (authUser && isProfileLoading)) {
+      return; // Wait until both auth and profile are done loading
+    }
 
-    if (!isLoading) {
-      if (authUser) {
-        // Only combine the user and profile once everything is loaded.
-        setCombinedUser({
-          ...authUser,
-          profile: userProfile || undefined,
-        });
-      } else {
-        setCombinedUser(null);
-      }
+    if (authUser) {
+      setCombinedUser({
+        ...authUser,
+        profile: userProfile || undefined,
+      });
+    } else {
+      setCombinedUser(null);
     }
   }, [authUser, userProfile, isAuthLoading, isProfileLoading]);
 
+  const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
 
   return {
     user: combinedUser,
-    isUserLoading: isUserLoading,
+    isUserLoading: isLoading,
     userError: authError || profileError,
   };
 };

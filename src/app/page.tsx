@@ -1,82 +1,78 @@
 'use client';
 
 import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { placeholderImages } from '@/lib/placeholder-images';
-import { useUser } from '@/firebase';
-import { AppShell } from '@/components/layout/app-shell';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const { user, isUserLoading } = useUser();
-  const router = useRouter();
-
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
-  // If the user state is loading, or if the user is logged in (and will be redirected by AppShell), show a loading skeleton.
-  if (isUserLoading || user) {
-    return (
-      <AppShell>
-        <div className="flex min-h-screen w-full items-center justify-center">
-          <div className="w-full max-w-4xl space-y-8 p-4">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-96 w-full" />
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
-  
-  // If there's no user, show the public registration page.
   return (
-    <AppShell>
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
-          <div className="md:col-span-5">
-            <Card className="overflow-hidden">
-              <div className="relative h-48 w-full md:h-64">
-                {heroImage && (
-                  <Image
-                    src={heroImage.imageUrl}
-                    alt={heroImage.description}
-                    data-ai-hint={heroImage.imageHint}
-                    fill
-                    className="object-cover"
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/50" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-primary-foreground">
-                  <h1 className="font-headline text-3xl font-bold md:text-5xl">
-                    African Nations Tournament Simulator
-                  </h1>
-                  <p className="mt-2 max-w-2xl text-lg text-primary-foreground/80">
-                    The future of African football is here. Register your
-                    federation and build your dream team.
-                  </p>
-                </div>
-              </div>
-               <CardContent className="p-6 text-center">
-                  <CardTitle className="font-headline text-2xl">
-                    Register Your Federation
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    Create an account to manage your team. Already have one?{' '}
-                    <Link href="/login" className="underline">
-                      Sign in here
-                    </Link>
-                    .
-                  </CardDescription>
-                  <Button className="mt-4" size="lg" asChild>
-                    <Link href="/register">Get Started</Link>
-                  </Button>
-              </CardContent>
-            </Card>
-          </div>
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Link href="/" className="font-headline text-lg font-bold">
+            African Nations Tournament
+          </Link>
+          <nav className="flex items-center gap-4">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/register">Get Started</Link>
+            </Button>
+          </nav>
         </div>
+      </header>
+      <main className="flex-1">
+        <section className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 gap-8">
+            <div className="col-span-1">
+              <Card className="overflow-hidden">
+                <div className="relative h-64 w-full md:h-96">
+                  {heroImage && (
+                    <Image
+                      src={heroImage.imageUrl}
+                      alt={heroImage.description}
+                      data-ai-hint={heroImage.imageHint}
+                      fill
+                      priority
+                      className="object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-primary-foreground">
+                    <h1 className="font-headline text-4xl font-bold md:text-6xl">
+                      African Nations Tournament Simulator
+                    </h1>
+                    <p className="mt-4 max-w-3xl text-lg text-primary-foreground/90">
+                      The future of African football is here. Register your
+                      federation, build your dream team, and compete for the
+                      title.
+                    </p>
+                    <Button className="mt-6" size="lg" asChild>
+                      <Link href="/register">Register Your Team Today</Link>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
       </main>
-    </AppShell>
+      <footer className="border-t bg-muted py-4">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} African Nations Tournament. All Rights Reserved.
+        </div>
+      </footer>
+    </div>
   );
 }

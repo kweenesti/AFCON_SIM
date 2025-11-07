@@ -60,24 +60,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      if (user.profile?.role === 'admin' && pathname.startsWith('/dashboard')) {
+    // If auth is loading, do nothing.
+    if (isUserLoading) return;
+
+    // If there is no user, redirect them to the login page, unless they are already on a public page.
+    if (!user) {
+      if (
+        pathname !== '/' &&
+        pathname !== '/login' &&
+        pathname !== '/register'
+      ) {
+        router.replace('/login');
+      }
+      return;
+    }
+
+    // If the user is logged in, handle role-based redirects.
+    if (user.profile?.role === 'admin' && !pathname.startsWith('/admin') && !pathname.startsWith('/schedule') && !pathname.startsWith('/matches') && !pathname.startsWith('/tournament')) {
+      router.replace('/admin');
+    } else if (user.profile?.role === 'federation' && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
+      router.replace('/dashboard');
+    } else if (
+      pathname === '/' ||
+      pathname === '/login' ||
+      pathname === '/register'
+    ) {
+      // If a logged-in user is on a public page, redirect them to their dashboard.
+      if (user.profile?.role === 'admin') {
         router.replace('/admin');
-      } else if (
-        user.profile?.role === 'federation' &&
-        (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))
-      ) {
-        router.replace('/dashboard');
-      } else if (
-        user.profile?.role === 'federation' &&
-        (pathname === '/' || pathname === '/login' || pathname === '/register')
-      ) {
+      } else {
         router.replace('/dashboard');
       }
     }
   }, [user, isUserLoading, pathname, router]);
 
-  if (isUserLoading) {
+
+  if (isUserLoading || !user) {
     return <AppShellSkeleton />;
   }
 
@@ -97,13 +115,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Regular federation user
     navItems = [
       { href: '/dashboard', label: 'Dashboard', icon: Home },
-      { href: '/matches', label: 'Matches', icon: Swords },
-      { href: '/tournament', label: 'Tournament', icon: Trophy },
-    ];
-  } else {
-    // Logged-out visitor
-    navItems = [
-      { href: '/register', label: 'Register', icon: FilePlus },
       { href: '/matches', label: 'Matches', icon: Swords },
       { href: '/tournament', label: 'Tournament', icon: Trophy },
     ];
@@ -142,22 +153,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
-          ) : !isUserLoading ? (
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogin} tooltip="Sign In">
-                  <LogIn />
-                  <span>Sign In</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          ) : null}
+          ) : null }
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-12 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
-          {/* Header content can be added here if needed */}
           <div />
         </header>
         <div className="flex-1 overflow-auto">{children}</div>

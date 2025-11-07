@@ -13,10 +13,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
+import { initializeFirebase } from '@/firebase';
+
+// Initialize Firebase on the client
+const { auth, firestore } = initializeFirebase();
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -24,8 +30,6 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   async function handleRegister() {
