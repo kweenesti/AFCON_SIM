@@ -38,18 +38,15 @@ export const useUser = (): UserHookResult => {
   const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
 
   useEffect(() => {
-    // Don't do anything until all loading is complete
     if (isLoading) {
       return; 
     }
     
-    // If there's no authenticated user after loading, there's no combined user
     if (!authUser) {
       setCombinedUser(null);
       return;
     }
 
-    // If we have an auth user and loading is done, construct the combined user object
     setCombinedUser({
         ...authUser,
         profile: userProfile || undefined,

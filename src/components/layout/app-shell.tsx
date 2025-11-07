@@ -47,7 +47,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-
+  
   useEffect(() => {
     if (isUserLoading) return;
 
@@ -62,24 +62,20 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
 
     if (isPublicPage) {
-        if (user.profile?.role === 'admin') {
-            router.replace('/admin');
-        } else {
-            router.replace('/dashboard');
-        }
-        return;
+      router.replace(user.profile?.role === 'admin' ? '/admin' : '/dashboard');
+      return;
     }
     
     if (user.profile?.role === 'admin') {
-        const isAdminPage = pathname.startsWith('/admin') || pathname.startsWith('/schedule') || pathname.startsWith('/matches') || pathname.startsWith('/tournament');
-        if (!isAdminPage) {
-             router.replace('/admin');
-        }
+      const isAdminPage = ['/admin', '/schedule', '/matches', '/tournament'].some(p => pathname.startsWith(p));
+      if (!isAdminPage) {
+        router.replace('/admin');
+      }
     } else if (user.profile?.role === 'federation') {
-        const isFederationPage = pathname.startsWith('/dashboard') || pathname.startsWith('/matches') || pathname.startsWith('/tournament');
-        if (!isFederationPage) {
-            router.replace('/dashboard');
-        }
+      const isFederationPage = ['/dashboard', '/matches', '/tournament'].some(p => pathname.startsWith(p));
+      if (!isFederationPage) {
+        router.replace('/dashboard');
+      }
     }
 
   }, [user, isUserLoading, pathname, router]);
@@ -166,12 +162,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { areServicesAvailable } = useFirebase();
-
-  if (!areServicesAvailable) {
-    return <AppShellSkeleton />;
-  }
-
-  return <AppShellContent>{children}</AppShellContent>;
+  // We cannot use any hooks that depend on Firebase context here.
+  // We can only check if the provider *exists* at a high level.
+  // All logic must be in the child component.
+  
+  // This outer component acts as a boundary.
+  // It ensures FirebaseClientProvider has mounted before its children try to access the context.
+  return (
+      <AppShellContent>{children}</AppShellContent>
+  );
 }
