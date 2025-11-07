@@ -56,7 +56,7 @@ import {
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
 import { doc, collection } from 'firebase/firestore';
-import { generatePlayers, randInt } from '@/lib/generate-players';
+import { randInt } from '@/lib/generate-players';
 import { firstNames, lastNames } from '@/lib/random-names';
 
 const playerSchema = z.object({
@@ -169,8 +169,8 @@ export function RegistrationForm() {
       const user = userCredential.user;
 
       if (user) {
-        // Create federation doc with a random ID now.
-        const federationRef = doc(collection(firestore, 'federations'));
+        // Create federation doc with the user's UID as the doc ID.
+        const federationRef = doc(firestore, 'federations', user.uid);
 
         const federationData: Omit<Federation, 'id'> = {
           representativeUid: user.uid, // Add owner UID

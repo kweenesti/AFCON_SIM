@@ -23,8 +23,9 @@ import {
   useFirestore,
   updateDocumentNonBlocking,
   useUser,
+  useDoc,
 } from '@/firebase';
-import { doc, collection, writeBatch, query, where } from 'firebase/firestore';
+import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
@@ -35,12 +36,11 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  const federationsQuery = useMemoFirebase(
-    () => user ? query(collection(firestore, 'federations'), where('representativeUid', '==', user.uid)) : null,
+  const federationRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'federations', user.uid) : null),
     [firestore, user]
   );
-  const { data: federations, isLoading: isFederationsLoading } = useCollection<Federation>(federationsQuery);
-  const federation = federations?.[0];
+  const { data: federation, isLoading: isFederationLoading } = useDoc<Federation>(federationRef);
 
   const playersRef = useMemoFirebase(
     () =>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
     });
   };
 
-  const isLoading = isUserLoading || isFederationsLoading || (federation && isSquadLoading);
+  const isLoading = isUserLoading || isFederationLoading || (federation && isSquadLoading);
 
   if (isLoading && !federation) {
     return (
@@ -144,7 +144,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user || (federations && federations.length === 0 && !isFederationsLoading)) {
+  if (!user || (!federation && !isFederationLoading)) {
      // This case handles when the query has run and returned no federations.
      // It could mean the federation document hasn't been created yet.
      // You might want to redirect to a setup page or show a specific message.
