@@ -54,9 +54,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           router.replace('/admin');
         }
       } else { // Is a federation user
-        // If a federation user is on an admin page, redirect them to their dashboard.
+        // If a federation user is on an admin page, or the schedule page, redirect to their dashboard.
         if (isOnAdminPage || pathname.startsWith('/schedule')) {
           router.replace('/dashboard');
+        } else if (isPublicPage) {
+           // If a logged-in federation user lands on a public page, redirect to their dashboard.
+           router.replace('/dashboard');
         }
       }
     }

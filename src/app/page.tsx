@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,12 +11,10 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
-  // Show a loading skeleton while checking for a user session or if a redirect is imminent.
-  // The redirect logic is now centralized in AppShell, so we just need a loading state here.
+  // If the user state is loading, or if the user is logged in (and will be redirected), show a loading skeleton.
   if (isUserLoading || user) {
     return (
       <AppShell>
