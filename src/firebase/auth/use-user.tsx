@@ -35,19 +35,30 @@ export const useUser = (): UserHookResult => {
     error: profileError,
   } = useDoc<UserProfile>(userProfileRef);
   
-  // Combine the authUser and userProfile directly.
-  // This is more stable than using a separate useEffect.
-  const combinedUser: AuthUser | null = authUser
-    ? {
-        ...authUser,
-        profile: userProfile || undefined,
+  const [combinedUser, setCombinedUser] = useState<AuthUser | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+
+  useEffect(() => {
+    // Overall loading is true if auth is loading or if we have an auth user but are still loading their profile.
+    const isLoading = isAuthLoading || (!!authUser && isProfileLoading);
+    setIsUserLoading(isLoading);
+
+    if (!isLoading) {
+      if (authUser) {
+        setCombinedUser({
+          ...authUser,
+          profile: userProfile || undefined,
+        });
+      } else {
+        setCombinedUser(null);
       }
-    : null;
+    }
+  }, [authUser, userProfile, isAuthLoading, isProfileLoading]);
+
 
   return {
     user: combinedUser,
-    // The overall loading state should reflect both auth and profile loading.
-    isUserLoading: isAuthLoading || (authUser && isProfileLoading),
+    isUserLoading: isUserLoading,
     userError: authError || profileError,
   };
 };

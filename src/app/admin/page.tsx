@@ -288,8 +288,8 @@ export default function AdminPage() {
   };
 
 
-  // Show a loader while verifying user role or if data is still loading
-  if (isUserLoading || (user && user.profile?.role === 'admin' && (isFederationsLoading || isTournamentLoading))) {
+  // Show a loader while verifying user role. This is the crucial part for preventing loops.
+  if (isUserLoading) {
     return (
       <AppShell>
         <main className="container mx-auto p-4 md:p-8">
@@ -304,8 +304,8 @@ export default function AdminPage() {
   }
 
   // After loading, if the user is confirmed to not be an admin, they should have already been redirected.
-  // This check is a fallback.
-  if (!user || user.profile?.role !== 'admin') {
+  // This is a fallback and also handles the case where a non-admin tries to access the URL directly.
+  if (user?.profile?.role !== 'admin') {
     return (
        <AppShell>
         <main className="container mx-auto p-4 md:p-8">

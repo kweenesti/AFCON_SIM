@@ -139,8 +139,7 @@ export default function DashboardPage() {
     });
   };
   
-  // While user data is loading, or if the user is an admin who will be redirected,
-  // show a loader to prevent content flashing.
+  // While user data is loading, or if the user will be redirected, show a loader.
   if (isUserLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>
@@ -172,8 +171,8 @@ export default function DashboardPage() {
     );
   }
   
-  // This prevents rendering flickering while federation data is loading for the first time
-  if (!federation) {
+  // Prevents rendering flickering for federation users while their data loads.
+  if (isFederationLoading || !federation) {
      return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
