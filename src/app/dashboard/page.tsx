@@ -24,7 +24,7 @@ import {
   useUser,
   useDoc,
 } from '@/firebase';
-import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, collection, writeBatch, getDocs, updateDoc } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
@@ -56,12 +56,12 @@ export default function DashboardPage() {
     useCollection<Player>(playersRef);
 
   const formMethods = useForm({
-    values: {
-      managerName: federation?.managerName || '',
+    defaultValues: {
+      managerName: '',
     },
   });
 
-  const { reset } = formMethods;
+  const { reset, register } = formMethods;
 
   useEffect(() => {
     if (federation) {
@@ -79,9 +79,9 @@ export default function DashboardPage() {
 
   const handleGenerateSquad = () => {
     startGenerating(async () => {
-      if (!firestore || !federation) return;
+      if (!firestore || !federation || !squad) return;
 
-      const newSquad = generatePlayers(squad || []);
+      const newSquad = generatePlayers(squad);
       const batch = writeBatch(firestore);
       const playersCollectionRef = collection(
         firestore,
@@ -90,18 +90,14 @@ export default function DashboardPage() {
         'players'
       );
       
-      // Delete existing players first
-      if (squad && squad.length > 0) {
-        const existingPlayersSnapshot = await getDocs(playersCollectionRef);
-        existingPlayersSnapshot.forEach((playerDoc) => {
-          batch.delete(playerDoc.ref);
-        });
-      }
+      const existingPlayersSnapshot = await getDocs(playersCollectionRef);
+      existingPlayersSnapshot.forEach((playerDoc) => {
+        batch.delete(playerDoc.ref);
+      });
 
-      // Add new players
       newSquad.forEach((player) => {
-        const playerDocRef = doc(playersCollectionRef, player.id);
-        batch.set(playerDocRef, player);
+        const playerDocRef = doc(playersCollectionRef);
+        batch.set(playerDocRef, { ...player, id: playerDocRef.id });
       });
       
       try {
@@ -132,13 +128,10 @@ export default function DashboardPage() {
         return;
       }
 
-      const batch = writeBatch(firestore);
-
       const federationDocRef = doc(firestore, 'federations', federation.id);
-      batch.update(federationDocRef, { managerName: formData.managerName });
-
+      
       try {
-        await batch.commit();
+        await updateDoc(federationDocRef, { managerName: formData.managerName });
         toast({
           title: 'Success!',
           description: 'Your team information has been saved.',
@@ -209,7 +202,7 @@ export default function DashboardPage() {
                     <Input
                       id="manager"
                       placeholder="e.g., José Mourinho"
-                      {...formMethods.register('managerName')}
+                      {...register('managerName')}
                     />
                   </div>
                   <Button
