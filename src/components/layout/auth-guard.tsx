@@ -35,7 +35,7 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
 
     if (!user) {
       if (!isPublicPage) {
-        router.replace('/'); // Redirect to home page if not logged in and not on a public page
+        router.replace('/login'); // Redirect to login page if not logged in and not on a public page
       }
       return;
     }
@@ -61,7 +61,9 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
   if (isUserLoading) {
     return <FullPageLoading />;
   }
-
+  
+  // This check is important for server-side rendering and initial load.
+  // If we are not on a public route and the user is not yet loaded, we show loading.
   const isPublicRoute =
     pathname === '/' ||
     pathname === '/login' ||
@@ -69,11 +71,7 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
     pathname.startsWith('/tournament') ||
     pathname.startsWith('/match');
     
-  if (isPublicRoute && !user) {
-    return <>{children}</>;
-  }
-
-  if (!user && !isPublicRoute) {
+  if (!isPublicRoute && !user) {
     return <FullPageLoading />;
   }
 
