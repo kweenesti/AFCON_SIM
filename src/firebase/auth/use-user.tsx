@@ -35,22 +35,19 @@ export const useUser = (): UserHookResult => {
     error: profileError,
   } = useDoc<UserProfile>(userProfileRef);
   
-  const [combinedUser, setCombinedUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    if (authUser) {
-      setCombinedUser({
+  // Combine the authUser and userProfile directly.
+  // This is more stable than using a separate useEffect.
+  const combinedUser: AuthUser | null = authUser
+    ? {
         ...authUser,
         profile: userProfile || undefined,
-      });
-    } else {
-      setCombinedUser(null);
-    }
-  }, [authUser, userProfile]);
+      }
+    : null;
 
   return {
     user: combinedUser,
-    isUserLoading: isAuthLoading,
+    // The overall loading state should reflect both auth and profile loading.
+    isUserLoading: isAuthLoading || (authUser && isProfileLoading),
     userError: authError || profileError,
   };
 };
