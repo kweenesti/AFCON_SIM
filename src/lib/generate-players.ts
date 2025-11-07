@@ -1,6 +1,4 @@
 
-'use client';
-
 import { playerPositions, type PlayerPosition, type Player } from './types';
 
 /**
