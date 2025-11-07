@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState } from 'react';
+import { useFormState } from 'react-hook-form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { grantAdminRole } from './actions';
 import { UserPlus } from 'lucide-react';
+import { useEffect } from 'react';
 
 const FormSchema = z.object({
   email: z.string().email('Please enter a valid email.'),
@@ -26,10 +27,14 @@ const FormSchema = z.object({
 
 type FormSchemaType = z.infer<typeof FormSchema>;
 
+const initialState = {
+    message: '',
+    success: false,
+};
+
 export function AdminRoleForm() {
   const { toast } = useToast();
-  const [state, dispatch, isPending] = useActionState(grantAdminRole, { message: '', success: false });
-
+  
   const form = useForm<FormSchemaType>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -37,25 +42,25 @@ export function AdminRoleForm() {
     },
   });
 
-  const onSubmit = async (data: FormSchemaType) => {
-    const formData = new FormData();
-    formData.append('email', data.email);
-    const result = await grantAdminRole(state, formData);
+  const [state, formAction] = useFormState(grantAdminRole, initialState);
 
-    toast({
-        title: result.success ? 'Success!' : 'Error',
-        description: result.message,
-        variant: result.success ? 'default' : 'destructive',
-    });
-
-    if(result.success) {
-        form.reset();
+  useEffect(() => {
+    if (state.message) {
+        toast({
+            title: state.success ? 'Success!' : 'Error',
+            description: state.message,
+            variant: state.success ? 'default' : 'destructive',
+        });
+        if (state.success) {
+            form.reset();
+        }
     }
-  };
+  }, [state, toast, form]);
+
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-4">
+      <form action={formAction} onSubmit={form.handleSubmit(() => form.trigger())} className="flex items-end gap-4">
         <FormField
           control={form.control}
           name="email"
@@ -74,9 +79,9 @@ export function AdminRoleForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isPending} variant="secondary">
+        <Button type="submit" disabled={form.formState.isSubmitting} variant="secondary">
           <UserPlus className="mr-2" />
-          {isPending ? 'Granting...' : 'Grant Admin Role'}
+          {form.formState.isSubmitting ? 'Granting...' : 'Grant Admin Role'}
         </Button>
       </form>
     </Form>
