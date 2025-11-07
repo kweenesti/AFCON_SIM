@@ -70,7 +70,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const isFederation = user.profile?.role === 'federation';
 
     // and they are on a public-only page (like login), redirect them to their dashboard.
-    if (publicPages.includes(pathname)) {
+    if (pathname === '/login' || pathname === '/register') {
         router.replace(isAdmin ? '/admin' : '/dashboard');
         return;
     }
