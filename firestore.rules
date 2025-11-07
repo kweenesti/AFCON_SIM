@@ -123,12 +123,12 @@ service cloud.firestore {
      * @description Manages access to match data.
      * @path /matches/{matchId}
      * @allow (create, update, delete) - Only admins can create, update, and delete matches.
-     * @allow (get, list) - All authenticated users can read match data.
+     * @allow (get, list) - All users (authenticated or not) can read match data.
      * @principle Secures match management to admins while allowing public viewing.
      */
     match /matches/{matchId} {
         allow create, update, delete: if isAdmin();
-        allow get, list: if isSignedIn();
+        allow get, list: if true;
     }
   }
 }
