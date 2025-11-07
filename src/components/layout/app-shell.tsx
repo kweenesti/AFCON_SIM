@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -48,23 +49,24 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // Wait for the auth state to be fully resolved
+    // CRITICAL: Do not run any logic until Firebase has confirmed the auth state.
     if (isUserLoading) {
       return;
     }
 
-    const publicPages = ['/', '/login', '/register'];
-    const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
+    const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
 
-    // If there is no user, and they are not on a public page, redirect to login.
+    // --- Logic for Unauthenticated Users ---
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
       }
       return;
     }
+    
+    // --- Logic for Authenticated Users ---
 
-    // If a logged-in user is on a public auth page (login/register), redirect them away.
+    // If a logged-in user is on an auth page, redirect them.
     if (pathname === '/login' || pathname === '/register') {
       if (user.profile?.role === 'admin') {
         router.replace('/admin');
@@ -73,11 +75,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       }
       return;
     }
-
+    
     const isAdmin = user.profile?.role === 'admin';
     const isFederation = user.profile?.role === 'federation';
 
-    // Role-based routing for authenticated users
+    // Role-based routing
     if (isAdmin) {
       // If an admin is on the federation dashboard, redirect them to the admin page.
       if (pathname.startsWith('/dashboard')) {
@@ -89,9 +91,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         router.replace('/dashboard');
       }
     }
-  }, [user, isUserLoading, pathname, router]);
+
+  }, [user, isUserLoading, pathname, router, auth]);
+
 
   // CRITICAL FIX: Do not render any protected content until authentication is resolved.
+  // This is the most important part of the fix.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
