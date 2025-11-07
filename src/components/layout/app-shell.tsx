@@ -49,10 +49,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
 
   useEffect(() => {
-    // This effect should only run once the auth state is confirmed.
-    // The checks before the return statement of AppShellContent prevent this
-    // from running with a 'null' user during the initial loading phase.
-    if (isUserLoading) return;
+    // Don't run any logic until Firebase has confirmed the auth state.
+    if (isUserLoading) {
+      return;
+    }
 
     const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
 
@@ -89,26 +89,27 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   }, [user, isUserLoading, pathname, router]);
 
-  // CRITICAL: Halt all rendering and logic until authentication is resolved.
+  // CRITICAL: This is the loading gate. It halts all rendering of protected pages
+  // until the authentication state is resolved, preventing race conditions.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
   
   const isAuthPage = pathname === '/login' || pathname === '/register';
-  const isPublicPage = isAuthPage || pathname === '/' || pathname.startsWith('/match/');
   
   // If user is not logged in, only allow public pages.
-  // For protected pages, render a skeleton while the redirect in useEffect happens.
+  // For protected pages, this renders a skeleton while the redirect in useEffect happens.
   if (!user) {
-    return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
+     const isPublicPage = isAuthPage || pathname === '/' || pathname.startsWith('/match/');
+     return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
   }
 
   // If a logged-in user somehow lands on an auth page, show skeleton until redirect.
   if (isAuthPage) {
     return <AppShellSkeleton />;
   }
-
-  // User is authenticated, render the full shell
+  
+  // User is authenticated, render the full shell.
   const isAdmin = user.profile?.role === 'admin';
 
   const navItems = isAdmin

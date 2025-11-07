@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -15,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/app-shell';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc, where } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw, Bot } from 'lucide-react';
@@ -36,16 +35,9 @@ import {
 function AdminDashboard() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
   const firestore = useFirestore();
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (!isUserLoading && user?.profile?.role !== 'admin') {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
 
   const federationsRef = useMemoFirebase(
     () => (firestore ? collection(firestore, 'federations') : null),
@@ -57,14 +49,14 @@ function AdminDashboard() {
     () => user?.profile?.role === 'admin' && firestore ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null,
     [firestore, user?.profile?.role]
   );
-  const { data: tournaments, isLoading: isTournamentLoading, error: tournamentError } = useCollection<Tournament>(latestTournamentQuery);
+  const { data: tournaments } = useCollection<Tournament>(latestTournamentQuery);
   const tournament = tournaments?.[0];
 
    const allMatchesQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'matches'), orderBy('createdAt', 'asc')) : null),
     [firestore]
   );
-  const { data: allMatches, isLoading: areMatchesLoading } = useCollection<Match>(allMatchesQuery);
+  const { data: allMatches } = useCollection<Match>(allMatchesQuery);
 
   const matches = useMemo(() => {
     if (!allMatches || !tournament) return [];
@@ -316,11 +308,7 @@ function AdminDashboard() {
   }
   
   if (user?.profile?.role !== 'admin') {
-    return (
-       <div className="flex h-full w-full items-center justify-center">
-           <p>Redirecting...</p>
-        </div>
-    );
+    return null;
   }
   
   const hasTournamentStarted = !!tournament;

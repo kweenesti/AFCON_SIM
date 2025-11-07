@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useMemo, useTransition, useEffect } from 'react';
+import { useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Federation, Player } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -31,18 +32,11 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { RegistrationForm } from '@/components/team/registration-form';
 
 export default function DashboardPage() {
-  const router = useRouter();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
-
-  useEffect(() => {
-    if (!isUserLoading && user?.profile?.role === 'admin') {
-      router.replace('/admin');
-    }
-  }, [user, isUserLoading, router]);
 
   const federationRef = useMemoFirebase(
     () => (user?.uid ? doc(firestore, 'federations', user.uid) : null),
@@ -58,7 +52,7 @@ export default function DashboardPage() {
         : null,
     [firestore, federation?.id]
   );
-  const { data: squad, isLoading: isSquadLoading } =
+  const { data: squad } =
     useCollection<Player>(playersRef);
 
   const formMethods = useForm({
