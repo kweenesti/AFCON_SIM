@@ -49,6 +49,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
+    // This is the critical fix. Do not run any redirect logic until the user's
+    // auth status is fully loaded and confirmed.
     if (isUserLoading) {
       return;
     }
@@ -56,6 +58,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
 
+    // If the user is not logged in, they should be on a public page.
+    // If they are on a protected page, redirect to login.
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
@@ -63,17 +67,23 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // If the user IS logged in, they should NOT be on a public page.
+    // Redirect them to their appropriate dashboard.
     if (isPublicPage) {
       router.replace(user.profile?.role === 'admin' ? '/admin' : '/dashboard');
       return;
     }
     
+    // If the user is an admin, ensure they are on an admin-accessible page.
+    // If not, redirect them to the main admin dashboard.
     if (user.profile?.role === 'admin') {
       const isAdminPage = ['/admin', '/schedule', '/matches', '/tournament'].some(p => pathname.startsWith(p));
       if (!isAdminPage) {
         router.replace('/admin');
       }
     } 
+    // If the user is a federation user, ensure they are on a valid federation page.
+    // If not, redirect them to their main dashboard.
     else if (user.profile?.role === 'federation') {
       const isFederationPage = ['/dashboard', '/matches', '/tournament'].some(p => pathname.startsWith(p));
       if (!isFederationPage) {
@@ -91,11 +101,17 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (isUserLoading || !user) {
+  if (isUserLoading) {
     return <AppShellSkeleton />;
   }
   
-  const isAdmin = user.profile?.role === 'admin';
+  // Don't render the main app shell for public pages
+  if (!user && ['/login', '/register'].includes(pathname)) {
+    return <>{children}</>;
+  }
+
+
+  const isAdmin = user?.profile?.role === 'admin';
 
   let navItems = [];
 
