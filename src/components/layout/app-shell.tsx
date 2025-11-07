@@ -49,9 +49,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
 
   useEffect(() => {
-    if (isUserLoading) {
-      return; // Do not run the effect until loading is complete
-    }
+    // This effect should only run once the auth state is confirmed.
+    // The checks before the return statement of AppShellContent prevent this
+    // from running with a 'null' user during the initial loading phase.
+    if (isUserLoading) return;
 
     const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
 
@@ -64,8 +65,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
     
     // --- Logic for Authenticated Users ---
+    const isAdmin = user.profile?.role === 'admin';
+    const isFederation = user.profile?.role === 'federation';
+
+    // Redirect logged-in users away from auth pages
     if (pathname === '/login' || pathname === '/register') {
-      if (user.profile?.role === 'admin') {
+      if (isAdmin) {
         router.replace('/admin');
       } else {
         router.replace('/dashboard');
@@ -73,15 +78,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
     
-    const isAdmin = user.profile?.role === 'admin';
-    const isFederation = user.profile?.role === 'federation';
-
-    // If a federation user tries to access admin-only pages, redirect them.
+    // Role-based redirects for accessing incorrect pages
     if (isFederation && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
       router.replace('/dashboard');
     }
     
-    // If an admin is on the federation dashboard, redirect to admin.
     if (isAdmin && pathname.startsWith('/dashboard')) {
         router.replace('/admin');
     }
@@ -92,16 +93,18 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
-
-  const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
   
-  // For unauthenticated users, render public pages or a skeleton while redirecting.
+  const isAuthPage = pathname === '/login' || pathname === '/register';
+  const isPublicPage = isAuthPage || pathname === '/' || pathname.startsWith('/match/');
+  
+  // If user is not logged in, only allow public pages.
+  // For protected pages, render a skeleton while the redirect in useEffect happens.
   if (!user) {
     return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
   }
 
-  // If a logged-in user somehow lands on a public auth page, show skeleton until redirect.
-  if (pathname === '/login' || pathname === '/register') {
+  // If a logged-in user somehow lands on an auth page, show skeleton until redirect.
+  if (isAuthPage) {
     return <AppShellSkeleton />;
   }
 
