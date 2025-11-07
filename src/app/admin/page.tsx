@@ -33,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-export default function AdminPage() {
+function AdminDashboard() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
@@ -309,23 +309,17 @@ export default function AdminPage() {
 
   if (isUserLoading) {
     return (
-      <AppShell>
-        <div className="flex h-full w-full items-center justify-center">
-          <Skeleton className="h-64 w-full max-w-4xl" />
-        </div>
-      </AppShell>
+      <div className="flex h-full w-full items-center justify-center">
+        <Skeleton className="h-64 w-full max-w-4xl" />
+      </div>
     );
   }
-
+  
   if (user?.profile?.role !== 'admin') {
-    // This check should be sufficient if useUser is reliable.
-    // The redirect will happen in the useEffect hook.
     return (
-       <AppShell>
-        <div className="flex h-full w-full items-center justify-center">
+       <div className="flex h-full w-full items-center justify-center">
            <p>Redirecting...</p>
         </div>
-      </AppShell>
     );
   }
   
@@ -341,154 +335,160 @@ export default function AdminPage() {
   const canGenerateFinal = semiFinals.length === 2 && semiFinals.every(m => m.played) && final.length === 0;
 
   return (
-    <AppShell>
-      <main className="container mx-auto p-4 md:p-8">
-        <div className="mx-auto max-w-4xl space-y-8">
-          <div className="text-center">
-            <h1 className="font-headline text-3xl font-bold md:text-4xl">
-              Admin Dashboard
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Manage the tournament and view registered teams.
-            </p>
-          </div>
+    <main className="container mx-auto p-4 md:p-8">
+      <div className="mx-auto max-w-4xl space-y-8">
+        <div className="text-center">
+          <h1 className="font-headline text-3xl font-bold md:text-4xl">
+            Admin Dashboard
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Manage the tournament and view registered teams.
+          </p>
+        </div>
 
-          <Card>
-             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserCog />
-                Admin Actions
-              </CardTitle>
-              <CardDescription>
-                Grant administrative privileges to other users.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <AdminRoleForm />
-            </CardContent>
-          </Card>
-
-          <Card>
+        <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <List />
-                Registered Federations
-              </CardTitle>
-              <CardDescription>
-                A total of {federations?.length || 0} teams have registered for the tournament.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isFederationsLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
-                </div>
-              ) : federations && federations.length > 0 ? (
-                 <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {federations.map(fed => (
-                        <li key={fed.id} className="p-4 border rounded-lg text-center bg-card-foreground/5">
-                            <span className="font-medium">{fed.countryName}</span>
-                        </li>
-                    ))}
-                 </ul>
-              ) : (
-                <p>No teams have registered yet.</p>
-              )}
-            </CardContent>
-          </Card>
+            <CardTitle className="flex items-center gap-2">
+              <UserCog />
+              Admin Actions
+            </CardTitle>
+            <CardDescription>
+              Grant administrative privileges to other users.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+              <AdminRoleForm />
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Tournament Control</CardTitle>
-              <CardDescription>
-                Manage the tournament lifecycle. You need at least 8 teams to start.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-start gap-4">
-              <div className="flex flex-wrap gap-4">
-                <Button onClick={handleStartTournament} disabled={!canStartTournament || isPending} variant="secondary">
-                  <PlayCircle className="mr-2" />
-                  Start Tournament
-                </Button>
-                <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches || isPending} variant="secondary">
-                  <Swords className="mr-2" />
-                  Generate Quarter-Finals
-                </Button>
-                <Button onClick={generateSemiFinals} disabled={!canGenerateSemis || isPending} variant="secondary">
-                  <Swords className="mr-2" />
-                  Generate Semi-Finals
-                </Button>
-                <Button onClick={generateFinal} disabled={!canGenerateFinal || isPending} variant="secondary">
-                  <Swords className="mr-2" />
-                  Generate Final
-                </Button>
-                 <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={!hasTournamentStarted || isPending}>
-                      <RefreshCw className="mr-2" />
-                      Restart Tournament
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete all current tournament matches and reset the tournament state.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleRestartTournament}>
-                        Confirm Restart
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <List />
+              Registered Federations
+            </CardTitle>
+            <CardDescription>
+              A total of {federations?.length || 0} teams have registered for the tournament.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isFederationsLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
               </div>
-
-              {message && <p className={`mt-4 text-sm ${message.includes('Need') || message.includes('Could not') ? 'text-destructive' : 'text-primary'}`}>{message}</p>}
-            </CardContent>
-          </Card>
-
-          {matches && matches.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Generated Matches</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {matches.map(match => (
-                    <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
-                       <Link href={`/match/${match.id}`} className="flex-1 grid grid-cols-3 items-center text-center">
-                         <span className="font-medium text-right">{match.homeTeamName}</span>
-                          {match.played ? (
-                            <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
-                          ) : (
-                            <span className="text-muted-foreground">vs</span>
-                          )}
-                         <span className="font-medium text-left">{match.awayTeamName}</span>
-                       </Link>
-                       {!match.played && (
-                        <div className="flex gap-2 ml-4">
-                         <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending}>
-                           <Zap className="mr-2 h-4 w-4" />
-                           {isPending ? '...' : 'Simulate'}
-                         </Button>
-                          <Button size="sm" variant="secondary" onClick={() => handlePlayMatch(match)} disabled={isPending}>
-                           <Bot className="mr-2 h-4 w-4" />
-                           {isPending ? '...' : 'Play'}
-                         </Button>
-                        </div>
-                       )}
-                    </li>
+            ) : federations && federations.length > 0 ? (
+                <ul className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {federations.map(fed => (
+                      <li key={fed.id} className="p-4 border rounded-lg text-center bg-card-foreground/5">
+                          <span className="font-medium">{fed.countryName}</span>
+                      </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
-          )}
+            ) : (
+              <p>No teams have registered yet.</p>
+            )}
+          </CardContent>
+        </Card>
 
-        </div>
-      </main>
+        <Card>
+          <CardHeader>
+            <CardTitle>Tournament Control</CardTitle>
+            <CardDescription>
+              Manage the tournament lifecycle. You need at least 8 teams to start.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-start gap-4">
+            <div className="flex flex-wrap gap-4">
+              <Button onClick={handleStartTournament} disabled={!canStartTournament || isPending} variant="secondary">
+                <PlayCircle className="mr-2" />
+                Start Tournament
+              </Button>
+              <Button onClick={generateQuarterFinals} disabled={!canGenerateMatches || isPending} variant="secondary">
+                <Swords className="mr-2" />
+                Generate Quarter-Finals
+              </Button>
+              <Button onClick={generateSemiFinals} disabled={!canGenerateSemis || isPending} variant="secondary">
+                <Swords className="mr-2" />
+                Generate Semi-Finals
+              </Button>
+              <Button onClick={generateFinal} disabled={!canGenerateFinal || isPending} variant="secondary">
+                <Swords className="mr-2" />
+                Generate Final
+              </Button>
+                <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={!hasTournamentStarted || isPending}>
+                    <RefreshCw className="mr-2" />
+                    Restart Tournament
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete all current tournament matches and reset the tournament state.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRestartTournament}>
+                      Confirm Restart
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
+            {message && <p className={`mt-4 text-sm ${message.includes('Need') || message.includes('Could not') ? 'text-destructive' : 'text-primary'}`}>{message}</p>}
+          </CardContent>
+        </Card>
+
+        {matches && matches.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Generated Matches</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {matches.map(match => (
+                  <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
+                      <Link href={`/match/${match.id}`} className="flex-1 grid grid-cols-3 items-center text-center">
+                        <span className="font-medium text-right">{match.homeTeamName}</span>
+                        {match.played ? (
+                          <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
+                        ) : (
+                          <span className="text-muted-foreground">vs</span>
+                        )}
+                        <span className="font-medium text-left">{match.awayTeamName}</span>
+                      </Link>
+                      {!match.played && (
+                      <div className="flex gap-2 ml-4">
+                        <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending}>
+                          <Zap className="mr-2 h-4 w-4" />
+                          {isPending ? '...' : 'Simulate'}
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => handlePlayMatch(match)} disabled={isPending}>
+                          <Bot className="mr-2 h-4 w-4" />
+                          {isPending ? '...' : 'Play'}
+                        </Button>
+                      </div>
+                      )}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+      </div>
+    </main>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <AppShell>
+      <AdminDashboard />
     </AppShell>
   );
 }
