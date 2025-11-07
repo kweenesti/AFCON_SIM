@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -60,28 +61,28 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // User is logged in, handle roles and redirects
+    if (isPublicPage) {
+        if (user.profile?.role === 'admin') {
+            router.replace('/admin');
+        } else {
+            router.replace('/dashboard');
+        }
+        return;
+    }
+    
     if (user.profile?.role === 'admin') {
-      if (
-        !pathname.startsWith('/admin') &&
-        !pathname.startsWith('/schedule') &&
-        !pathname.startsWith('/matches') &&
-        !pathname.startsWith('/tournament')
-      ) {
-        router.replace('/admin');
-      }
+        const isAdminPage = pathname.startsWith('/admin') || pathname.startsWith('/schedule') || pathname.startsWith('/matches') || pathname.startsWith('/tournament');
+        if (!isAdminPage) {
+             router.replace('/admin');
+        }
     } else if (user.profile?.role === 'federation') {
-      if (pathname.startsWith('/admin') || pathname.startsWith('/schedule')) {
-        router.replace('/dashboard');
-      }
+        const isFederationPage = pathname.startsWith('/dashboard') || pathname.startsWith('/matches') || pathname.startsWith('/tournament');
+        if (!isFederationPage) {
+            router.replace('/dashboard');
+        }
     }
 
-    if (isPublicPage) {
-      if (user.profile?.role === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.replace('/dashboard');
-      }
-    }
   }, [user, isUserLoading, pathname, router]);
 
   const handleLogout = () => {
