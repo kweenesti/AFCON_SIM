@@ -13,10 +13,12 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
   // Show a loading skeleton while checking for a user session or if a redirect is imminent.
+  // The redirect logic is now centralized in AppShell, so we just need a loading state here.
   if (isUserLoading || user) {
     return (
       <AppShell>

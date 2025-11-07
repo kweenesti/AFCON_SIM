@@ -40,22 +40,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // The single source of truth for role-based redirection.
   useEffect(() => {
-    if (!isUserLoading && user) {
-      const isAdmin = user.profile?.role === 'admin';
-      const isPublicPage = ['/', '/login', '/register'].includes(pathname);
+    // Only run this logic when user loading is complete and we have a user object with a profile.
+    if (!isUserLoading && user?.profile) {
+      const isAdmin = user.profile.role === 'admin';
+      const isPublicPage = ['/login', '/register'].includes(pathname) || pathname === '/';
       const isOnAdminPage = pathname.startsWith('/admin');
       const isOnDashboardPage = pathname.startsWith('/dashboard');
 
       if (isAdmin) {
-        if (!isOnAdminPage) {
+        // If an admin is on any page that is NOT an admin-allowed page, redirect them to /admin.
+        // Admin-allowed pages are /admin, /schedule, /matches, /tournament.
+        if (!isOnAdminPage && !['/schedule', '/matches', '/tournament'].includes(pathname)) {
           router.replace('/admin');
         }
       } else { // Is a federation user
-        if (!isOnDashboardPage && !isPublicPage) {
-           // Allow access to shared pages like /matches, /tournament
-          if (!['/matches', '/tournament'].includes(pathname)) {
-            router.replace('/dashboard');
-          }
+        // If a federation user is on an admin page, redirect them to their dashboard.
+        if (isOnAdminPage || pathname.startsWith('/schedule')) {
+          router.replace('/dashboard');
         }
       }
     }

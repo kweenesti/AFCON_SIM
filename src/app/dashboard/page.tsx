@@ -127,7 +127,7 @@ export default function DashboardPage() {
     });
   };
   
-  // While user data is loading, or if the user is an admin (and will be redirected), show a loader.
+  // While user data is loading, or if the user is an admin (and will be redirected by AppShell), show a loader.
   if (isUserLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>
