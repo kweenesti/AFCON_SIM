@@ -8,7 +8,7 @@ const serviceAccount = {
   "type": "service_account",
   "project_id": "studio-8231274621-6d57e",
   "private_key_id": "mock_private_key_id",
-  "private_key": "-----BEGIN PRIVATE KEY-----\\nMOCK_PRIVATE_KEY\\n-----END PRIVATE KEY-----\\n",
+  "private_key": `-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END PRIVATE KEY-----\n`,
   "client_email": "firebase-adminsdk-mock@studio-8231274621-6d57e.iam.gserviceaccount.com",
   "client_id": "mock_client_id",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
