@@ -63,7 +63,8 @@ service cloud.firestore {
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
-      allow read: if isSignedIn();
+      allow get: if isOwner(userId);
+      allow list: if isAdmin();
       allow write: if isSignedIn() && isOwner(userId);
     }
 
@@ -127,7 +128,7 @@ service cloud.firestore {
      */
     match /matches/{matchId} {
         allow create, update, delete: if isAdmin();
-        allow get, list: if true;
+        allow get, list: if isSignedIn();
     }
   }
 }
