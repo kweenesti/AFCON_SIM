@@ -40,21 +40,18 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  // Page Guard: Redirect non-admins. This is the most stable approach.
   useEffect(() => {
     if (!isUserLoading && user?.profile?.role !== 'admin') {
       router.replace('/dashboard');
     }
   }, [user, isUserLoading, router]);
 
-  // Fetch all federations - ONLY if user is an admin
   const federationsRef = useMemoFirebase(
-    () => (firestore && user?.profile?.role === 'admin' ? collection(firestore, 'federations') : null),
-    [firestore, user?.profile?.role]
+    () => (firestore ? collection(firestore, 'federations') : null),
+    [firestore]
   );
   const { data: federations, isLoading: isFederationsLoading } = useCollection<Federation>(federationsRef);
 
-  // Fetch the latest tournament
   const latestTournamentQuery = useMemoFirebase(
     () => user?.profile?.role === 'admin' && firestore ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null,
     [firestore, user?.profile?.role]
@@ -62,7 +59,6 @@ export default function AdminPage() {
   const { data: tournaments, isLoading: isTournamentLoading, error: tournamentError } = useCollection<Tournament>(latestTournamentQuery);
   const tournament = tournaments?.[0];
 
-   // Fetch matches for the current tournament
    const matchesQuery = useMemoFirebase(
     () => (tournament && firestore ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
     [firestore, tournament]
@@ -111,7 +107,6 @@ export default function AdminPage() {
       return;
     }
 
-    // Simple shuffle
     const shuffled = [...federations].sort(() => Math.random() - 0.5);
     const pairs = [
       shuffled.slice(0, 2),
@@ -165,9 +160,8 @@ export default function AdminPage() {
     
         const winners = playedQf.map(m => {
             const winnerId = m.winnerId;
-            // Find the full federation object for the winner
             return federations.find(f => f.id === winnerId);
-        }).filter((f): f is Federation => !!f); // Filter out any undefined results and assert type
+        }).filter((f): f is Federation => !!f); 
     
         if (winners.length !== 4) {
             setMessage("Could not determine 4 unique winners from the matches played.");
@@ -175,7 +169,6 @@ export default function AdminPage() {
             return;
         }
     
-        // Pair up the winners for the semi-finals
         const shuffled = [...winners].sort(() => Math.random() - 0.5);
         const pairs = [shuffled.slice(0, 2), shuffled.slice(2, 4)];
     
@@ -308,21 +301,8 @@ export default function AdminPage() {
     });
   };
 
-
-  // Show a loader while verifying user role, or if user is not an admin.
-  // This prevents flashing the admin content to a non-admin user before redirect.
   if (isUserLoading || user?.profile?.role !== 'admin') {
-    return (
-      <AppShell>
-        <main className="container mx-auto p-4 md:p-8">
-          <div className="mx-auto max-w-4xl space-y-8">
-            <Skeleton className="h-12 w-1/2" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </div>
-        </main>
-      </AppShell>
-    );
+    return null;
   }
   
   const hasTournamentStarted = !!tournament;
@@ -337,7 +317,6 @@ export default function AdminPage() {
   const canGenerateFinal = semiFinals.length === 2 && semiFinals.every(m => m.played) && final.length === 0;
 
   return (
-    <AppShell>
       <main className="container mx-auto p-4 md:p-8">
         <div className="mx-auto max-w-4xl space-y-8">
           <div className="text-center">
@@ -485,6 +464,5 @@ export default function AdminPage() {
 
         </div>
       </main>
-    </AppShell>
   );
 }

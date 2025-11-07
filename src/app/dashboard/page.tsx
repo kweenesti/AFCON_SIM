@@ -38,7 +38,6 @@ export default function DashboardPage() {
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
 
-  // Page Guard: Redirect admins. This is the most stable approach.
   useEffect(() => {
     if (!isUserLoading && user?.profile?.role === 'admin') {
       router.replace('/admin');
@@ -141,24 +140,12 @@ export default function DashboardPage() {
     });
   };
   
-  // Show a loading skeleton while we verify user, role and data
-  // or if user is an admin (who will be redirected away)
   if (isUserLoading || isFederationLoading || user?.profile?.role === 'admin') {
-    return (
-      <AppShell>
-        <div className="container mx-auto p-4 space-y-8">
-          <Skeleton className="h-12 w-1/3" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      </AppShell>
-    );
+    return null;
   }
 
-  // After loading, if there's no federation data for a non-admin user
   if (!federation) {
     return (
-      <AppShell>
         <main className="container mx-auto p-4 md:p-8">
            <Card>
             <CardHeader>
@@ -170,12 +157,10 @@ export default function DashboardPage() {
             </CardContent>
            </Card>
         </main>
-      </AppShell>
     );
   }
   
   return (
-    <AppShell>
       <main className="container mx-auto p-4 md:p-8">
         <FormProvider {...formMethods}>
           <form
@@ -243,6 +228,5 @@ export default function DashboardPage() {
           </form>
         </FormProvider>
       </main>
-    </AppShell>
   );
 }
