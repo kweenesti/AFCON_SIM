@@ -24,6 +24,7 @@ import {
   updateDocumentNonBlocking,
   useUser,
   useDoc,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
@@ -47,28 +48,20 @@ export default function DashboardPage() {
       federation ? collection(firestore, 'federations', federation.id, 'players') : null,
     [firestore, federation]
   );
-  const { data: existingSquad, isLoading: isSquadLoading } =
+  const { data: squad, isLoading: isSquadLoading, setData: setSquad } =
     useCollection<Player>(playersRef);
 
   // State for form inputs, initialized from props
   const [managerName, setManagerName] = useState('');
-  const [squad, setSquad] = useState<Player[]>([]);
-
+  
   useEffect(() => {
-    // Only set the manager name if it's coming from the federation data and hasn't been set yet.
     if (federation && managerName === '') {
       setManagerName(federation.managerName);
     }
   }, [federation, managerName]);
 
-  useEffect(() => {
-    // Only set the squad from Firestore if the local squad is empty and the data has arrived.
-    if (existingSquad && squad.length === 0) {
-      setSquad(existingSquad);
-    }
-  }, [existingSquad, squad.length]);
 
-  const teamRating = useMemo(() => computeTeamRating(squad), [squad]);
+  const teamRating = useMemo(() => computeTeamRating(squad || []), [squad]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -77,8 +70,9 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
+    if (!squad) return;
     const newSquad = generatePlayers(squad);
-    setSquad(newSquad);
+    setSquad(newSquad); // Optimistically update the local state from the hook
     const rating = computeTeamRating(newSquad);
     toast({
       title: 'Squad Generated!',
@@ -87,7 +81,7 @@ export default function DashboardPage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!user || !federation || !firestore) {
+    if (!user || !federation || !firestore || !squad) {
       toast({
         title: 'Error',
         description: 'You must be logged in and part of a federation.',
@@ -96,11 +90,11 @@ export default function DashboardPage() {
       return;
     }
 
-    const federationRef = doc(firestore, 'federations', federation.id);
+    const federationDocRef = doc(firestore, 'federations', federation.id);
     
     // 1. Update manager name in federation document
     if (managerName !== federation.managerName) {
-        updateDocumentNonBlocking(federationRef, { managerName });
+        updateDocumentNonBlocking(federationDocRef, { managerName });
     }
 
     // 2. Overwrite the players subcollection with the new squad
@@ -120,8 +114,9 @@ export default function DashboardPage() {
 
     // Set/overwrite each player document in the new squad
     squad.forEach((player) => {
-      const playerDocRef = doc(playersCollectionRef, player.id);
-      batch.set(playerDocRef, { ...player, federationId: federation.id });
+      // Create a doc ref with a new ID for each player to be safe
+      const playerDocRef = doc(collection(firestore, `federations/${federation.id}/players`));
+      batch.set(playerDocRef, { ...player, id: playerDocRef.id, federationId: federation.id });
     });
 
     await batch.commit();
@@ -147,10 +142,6 @@ export default function DashboardPage() {
   }
 
   if (!user || (!federation && !isFederationLoading)) {
-     // This case handles when the query has run and returned no federations.
-     // It could mean the federation document hasn't been created yet.
-     // You might want to redirect to a setup page or show a specific message.
-     // For now, we'll just prevent a crash.
      return (
         <AppShell>
             <main className="container mx-auto p-4 md:p-8">
@@ -215,7 +206,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <SquadTable squad={squad} />
+              <SquadTable squad={squad || []} />
             </CardContent>
           </Card>
         </div>
