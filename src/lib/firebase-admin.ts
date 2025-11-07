@@ -7,8 +7,9 @@ import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 const serviceAccount = {
   "type": "service_account",
   "project_id": "studio-8231274621-6d57e",
-  "private_key_id": "mock_private_key_id",
-  "private_key": process.env.FIREBASE_PRIVATE_KEY,
+  // The private_key is now read from an environment variable.
+  // The replace call is crucial to handle the newline characters from the .env file.
+  "private_key": process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   "client_email": "firebase-adminsdk-mock@studio-8231274621-6d57e.iam.gserviceaccount.com",
   "client_id": "mock_client_id",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
