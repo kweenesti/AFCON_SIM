@@ -132,6 +132,24 @@ export async function restartTournamentAction(tournamentId: string | undefined):
              batch.delete(tournamentRef);
         }
 
+        // Also clear all federations
+        const federationsQuery = firestore.collection('federations');
+        const federationsSnapshot = await federationsQuery.get();
+        federationsSnapshot.forEach(doc => {
+            // We need to delete subcollections recursively
+            // This is a simplified approach. For deep subcollections, a more complex solution is needed.
+            const playersRef = doc.ref.collection('players');
+            // This part of the code is not recursive, it just deletes one level deep.
+            // For this app, it is sufficient.
+            return playersRef.get().then(playersSnapshot => {
+                playersSnapshot.forEach(playerDoc => {
+                    batch.delete(playerDoc.ref);
+                });
+                batch.delete(doc.ref);
+            });
+        });
+
+
         await batch.commit();
 
         return { success: true, message: 'Tournament has been successfully restarted.' };
