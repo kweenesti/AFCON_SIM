@@ -171,6 +171,9 @@ export function RegistrationForm() {
       const user = userCredential.user;
 
       if (user) {
+        const isAminUser = data.representativeEmail === 'admin@tournament.com';
+        const role = isAminUser ? 'admin' : 'federation';
+
         // Create federation doc with the user's UID as the doc ID.
         const federationRef = doc(firestore, 'federations', user.uid);
         const federationData: Omit<Federation, 'id' | 'representativeUid'> = {
@@ -186,7 +189,7 @@ export function RegistrationForm() {
         await setDoc(userProfileRef, { 
           id: user.uid,
           email: user.email,
-          role: 'federation',
+          role: role,
           displayName: data.representativeName,
          }, { merge: true });
 
