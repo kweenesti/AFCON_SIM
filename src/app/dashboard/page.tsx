@@ -51,20 +51,22 @@ export default function DashboardPage() {
     useCollection<Player>(playersRef);
 
   // State for form inputs, initialized from props
-  const [managerName, setManagerName] = useState(federation?.managerName || '');
-  const [squad, setSquad] = useState<Player[]>(existingSquad || []);
+  const [managerName, setManagerName] = useState('');
+  const [squad, setSquad] = useState<Player[]>([]);
 
   useEffect(() => {
+    // Only set the manager name if it's coming from the federation data and hasn't been set yet.
     if (federation && managerName === '') {
       setManagerName(federation.managerName);
     }
   }, [federation, managerName]);
 
   useEffect(() => {
-    if (existingSquad) {
+    // Only set the squad from Firestore if the local squad is empty and the data has arrived.
+    if (existingSquad && squad.length === 0) {
       setSquad(existingSquad);
     }
-  }, [existingSquad]);
+  }, [existingSquad, squad.length]);
 
   const teamRating = useMemo(() => computeTeamRating(squad), [squad]);
 
