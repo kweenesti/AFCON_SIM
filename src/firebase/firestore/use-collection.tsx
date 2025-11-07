@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Query,
   onSnapshot,
@@ -39,6 +39,24 @@ export interface InternalQuery extends Query<DocumentData> {
 }
 
 /**
+ * Extracts a stable string path from a Firestore query or collection reference.
+ * This is used to create a stable dependency for useEffect.
+ */
+const getQueryPath = (query: CollectionReference | Query | null | undefined): string | null => {
+    if (!query) {
+        return null;
+    }
+    if (query.type === 'collection') {
+        return (query as CollectionReference).path;
+    }
+    // This is a simplified way to get a unique key for a query.
+    // For more complex queries (with where, orderBy, etc.), a more robust serialization would be needed.
+    // However, the internal `_query.path` is sufficient for path changes.
+    return (query as unknown as InternalQuery)._query.path.canonicalString();
+}
+
+
+/**
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Handles nullable references/queries.
  * 
@@ -61,6 +79,9 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+
+  // Generate a stable key from the query path to use as a dependency.
+  const queryKey = useMemo(() => getQueryPath(memoizedTargetRefOrQuery), [memoizedTargetRefOrQuery]);
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -107,7 +128,8 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, [queryKey]); // Re-run only if the stable query key changes.
+  
   if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
     throw new Error(memoizedTargetRefOrQuery + ' was not properly memoized using useMemoFirebase');
   }
