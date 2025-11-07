@@ -100,11 +100,25 @@ function AdminDashboard() {
 
   const generateQuarterFinals = async () => {
     if (!federations || federations.length < 8 || !tournament || !firestore) {
-      setMessage("Need 8 teams and a started tournament to generate matches.");
+      setMessage("Need 8 unique teams and a started tournament to generate matches.");
       return;
     }
 
-    const shuffled = [...federations].sort(() => Math.random() - 0.5);
+    // De-duplicate federations to ensure we have unique teams
+    const uniqueFederations = Array.from(new Map(federations.map(f => [f.id, f])).values());
+
+    if (uniqueFederations.length < 8) {
+        setMessage(`Need at least 8 unique teams. Found ${uniqueFederations.length}.`);
+        toast({
+            title: 'Error',
+            description: `Need at least 8 unique teams to start. Found ${uniqueFederations.length}.`,
+            variant: 'destructive',
+        });
+        return;
+    }
+
+
+    const shuffled = [...uniqueFederations].sort(() => Math.random() - 0.5).slice(0, 8);
     const pairs = [
       shuffled.slice(0, 2),
       shuffled.slice(2, 4),
@@ -116,6 +130,7 @@ function AdminDashboard() {
     const matchesCollection = collection(firestore, "matches");
 
     pairs.forEach(pair => {
+      if (pair.length < 2) return; // Should not happen with the logic above
       const matchDocRef = doc(matchesCollection);
       batch.set(matchDocRef, {
         id: matchDocRef.id,
@@ -429,31 +444,34 @@ function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {matches.map(match => (
-                  <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
-                      <Link href={`/match/${match.id}`} className="flex-1 grid grid-cols-3 items-center text-center">
-                        <span className="font-medium text-right">{match.homeTeamName}</span>
-                        {match.played ? (
-                          <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
-                        ) : (
-                          <span className="text-muted-foreground">vs</span>
-                        )}
-                        <span className="font-medium text-left">{match.awayTeamName}</span>
-                      </Link>
-                      {!match.played && (
-                      <div className="flex gap-2 ml-4">
-                        <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending}>
-                          <Zap className="mr-2 h-4 w-4" />
-                          {isPending ? '...' : 'Simulate'}
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={() => handlePlayMatch(match)} disabled={isPending}>
-                          <Bot className="mr-2 h-4 w-4" />
-                          {isPending ? '...' : 'Play'}
-                        </Button>
-                      </div>
-                      )}
-                  </li>
-                ))}
+                {matches.map(match => {
+                    const isInvalidMatch = match.homeTeamId === match.awayTeamId;
+                    return (
+                        <li key={match.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
+                            <Link href={`/match/${match.id}`} className="flex-1 grid grid-cols-3 items-center text-center">
+                              <span className="font-medium text-right">{match.homeTeamName}</span>
+                              {match.played ? (
+                                <span className="font-bold text-lg">{match.homeScore} - {match.awayScore}</span>
+                              ) : (
+                                <span className="text-muted-foreground">vs</span>
+                              )}
+                              <span className="font-medium text-left">{match.awayTeamName}</span>
+                            </Link>
+                            {!match.played && (
+                            <div className="flex gap-2 ml-4">
+                              <Button size="sm" variant="outline" onClick={() => handleSimulateMatch(match)} disabled={isPending || isInvalidMatch}>
+                                <Zap className="mr-2 h-4 w-4" />
+                                {isPending ? '...' : 'Simulate'}
+                              </Button>
+                              <Button size="sm" variant="secondary" onClick={() => handlePlayMatch(match)} disabled={isPending || isInvalidMatch}>
+                                <Bot className="mr-2 h-4 w-4" />
+                                {isPending ? '...' : 'Play'}
+                              </Button>
+                            </div>
+                            )}
+                        </li>
+                    )
+                })}
               </ul>
             </CardContent>
           </Card>
@@ -471,3 +489,5 @@ export default function AdminPage() {
     </AppShell>
   );
 }
+
+    
