@@ -526,26 +526,28 @@ function AdminDashboard() {
                   {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                 </div>
               ) : sentEmails && sentEmails.length > 0 ? (
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead>To</TableHead>
-                              <TableHead>Subject</TableHead>
-                              <TableHead className="text-right">Sent</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {sentEmails.map(email => (
-                              <TableRow key={email.id}>
-                                  <TableCell>{email.to}</TableCell>
-                                  <TableCell>{email.message.subject}</TableCell>
-                                  <TableCell className="text-right">
-                                      {email.createdAt?.toDate ? formatDistanceToNow(email.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                      </TableBody>
-                  </Table>
+                  <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>To</TableHead>
+                                <TableHead>Subject</TableHead>
+                                <TableHead className="text-right">Sent</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sentEmails.map(email => (
+                                <TableRow key={email.id}>
+                                    <TableCell>{email.to}</TableCell>
+                                    <TableCell>{email.message.subject}</TableCell>
+                                    <TableCell className="text-right">
+                                        {email.createdAt?.toDate ? formatDistanceToNow(email.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                  </div>
               ) : (
                   <p className="text-center text-muted-foreground">No emails have been sent yet.</p>
               )}
@@ -564,5 +566,3 @@ export default function AdminPage() {
     </AppShell>
   );
 }
-
-    
