@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -38,6 +38,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
 
+  // The single source of truth for role-based redirection.
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      const isAdmin = user.profile?.role === 'admin';
+      const isPublicPage = ['/', '/login', '/register'].includes(pathname);
+      const isOnAdminPage = pathname.startsWith('/admin');
+      const isOnDashboardPage = pathname.startsWith('/dashboard');
+
+      if (isAdmin) {
+        if (!isOnAdminPage) {
+          router.replace('/admin');
+        }
+      } else { // Is a federation user
+        if (!isOnDashboardPage && !isPublicPage) {
+           // Allow access to shared pages like /matches, /tournament
+          if (!['/matches', '/tournament'].includes(pathname)) {
+            router.replace('/dashboard');
+          }
+        }
+      }
+    }
+  }, [user, isUserLoading, pathname, router]);
+
   const handleLogout = () => {
     signOut(auth).then(() => {
       router.push('/');
@@ -49,34 +72,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const isRegistered = !!user;
+  const isAdmin = user?.profile?.role === 'admin';
 
-  // Define navigation items based on user role
   let navItems = [];
-  const isAdminPage = pathname === '/admin';
-  let headerDashboardLink = '/dashboard';
-
-  if (isRegistered) {
-    if (user.profile?.role === 'admin') {
-      navItems = [
-        { href: '/admin', label: 'Admin', icon: UserCog },
-        { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
-        { href: '/matches', label: 'Matches', icon: Swords },
-        { href: '/tournament', label: 'Tournament', icon: Trophy },
-      ];
-      headerDashboardLink = '/admin'; // <-- CRITICAL FIX: Point header link to /admin for admins
-    } else {
-      // Regular federation user
-      navItems = [
-        { href: '/dashboard', label: 'Dashboard', icon: Home },
-        { href: '/matches', label: 'Matches', icon: Swords },
-        { href: '/tournament', label: 'Tournament', icon: Trophy },
-      ];
-      headerDashboardLink = '/dashboard';
-    }
+  
+  if (isAdmin) {
+    navItems = [
+      { href: '/admin', label: 'Admin', icon: UserCog },
+      { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
+      { href: '/matches', label: 'Matches', icon: Swords },
+      { href: '/tournament', label: 'Tournament', icon: Trophy },
+    ];
+  } else if (isRegistered) {
+    // Regular federation user
+    navItems = [
+      { href: '/dashboard', label: 'Dashboard', icon: Home },
+      { href: '/matches', label: 'Matches', icon: Swords },
+      { href: '/tournament', label: 'Tournament', icon: Trophy },
+    ];
   } else {
     // Logged-out visitor
     navItems = [
-      { href: '/', label: 'Register', icon: FilePlus },
+      { href: '/register', label: 'Register', icon: FilePlus },
       { href: '/matches', label: 'Matches', icon: Swords },
       { href: '/tournament', label: 'Tournament', icon: Trophy },
     ];
@@ -137,19 +154,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-12 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
-           {isRegistered && pathname !== headerDashboardLink ? ( // Hide button if already on the target page
-              <Button variant="ghost" size="sm" asChild>
-                <Link href={headerDashboardLink}>
-                    {user.profile?.role === 'admin' ? 'Go to Admin' : 'Go to Dashboard'}
-                </Link>
-              </Button>
-           ) : isRegistered ? (
-             <div></div> // Placeholder to keep layout consistent
-           ) : (
-             <Button variant="ghost" size="sm" onClick={handleLogin}>
-                Sign In
-             </Button>
-           )}
+          {/* Header content can be added here if needed */}
+          <div />
         </header>
         <div className="flex-1 overflow-auto">{children}</div>
       </SidebarInset>

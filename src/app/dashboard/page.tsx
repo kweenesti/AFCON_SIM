@@ -38,17 +38,6 @@ export default function DashboardPage() {
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
 
-  // Redirect logic
-  useEffect(() => {
-    if (!isUserLoading) {
-      if (!user) {
-        router.replace('/');
-      } else if (user.profile?.role === 'admin') {
-        router.replace('/admin');
-      }
-    }
-  }, [user, isUserLoading, router]);
-
   const federationRef = useMemoFirebase(
     () => (user?.uid ? doc(firestore, 'federations', user.uid) : null),
     [firestore, user?.uid]
@@ -129,7 +118,6 @@ export default function DashboardPage() {
 
       const federationDocRef = doc(firestore, 'federations', federation.id);
       
-      // Use the non-blocking update function
       updateDocumentNonBlocking(federationDocRef, { managerName: formData.managerName });
 
       toast({
@@ -139,7 +127,7 @@ export default function DashboardPage() {
     });
   };
   
-  // While user data is loading, or if the user will be redirected, show a loader.
+  // While user data is loading, or if the user is an admin (and will be redirected), show a loader.
   if (isUserLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>

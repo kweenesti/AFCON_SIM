@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { RegistrationForm } from '@/components/team/registration-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderImages } from '@/lib/placeholder-images';
@@ -13,23 +12,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export default function Home() {
-  const router = useRouter();
   const { user, isUserLoading } = useUser();
-
-  // Redirect logged-in users to their appropriate dashboard.
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      if (user.profile?.role === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.replace('/dashboard');
-      }
-    }
-  }, [user, isUserLoading, router]);
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
-  // Show a loading skeleton while checking for a user session or redirecting.
+  // Show a loading skeleton while checking for a user session or if a redirect is imminent.
   if (isUserLoading || user) {
     return (
       <AppShell>
