@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
+import { AppShell } from '@/components/layout/app-shell';
 
 
 function BracketNode({ match }: { match: Match | undefined }) {
@@ -41,34 +41,6 @@ function BracketNode({ match }: { match: Match | undefined }) {
        {match.played && match.winnerId === match.homeTeamId && <div className="font-bold text-primary text-xs">{match.homeTeamName} wins</div>}
        {match.played && match.winnerId === match.awayTeamId && <div className="font-bold text-primary text-xs">{match.awayTeamName} wins</div>}
     </Link>
-  );
-}
-
-function TournamentLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="font-headline text-lg font-bold">
-            African Nations Tournament
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <Link href="/login">Sign In</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/register">Get Started</Link>
-            </Button>
-          </nav>
-        </div>
-      </header>
-      <main className="flex-1">{children}</main>
-      <footer className="border-t bg-muted py-4">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} African Nations Tournament. All Rights Reserved.
-        </div>
-      </footer>
-    </div>
   );
 }
 
@@ -134,111 +106,109 @@ export default function TournamentPage() {
 
 
     return (
-        <TournamentLayout>
-             <main className="container mx-auto p-4 md:p-8">
-                <div className="mx-auto max-w-6xl space-y-8">
-                    <div className="text-center">
-                        <h1 className="font-headline text-3xl font-bold md:text-4xl">
-                            Tournament Bracket
-                        </h1>
-                        <p className="mt-2 text-muted-foreground">
-                           Follow the journey to crown the champion of Africa.
-                        </p>
-                    </div>
+        <main className="container mx-auto p-4 md:p-8">
+          <div className="mx-auto max-w-6xl space-y-8">
+              <div className="text-center">
+                  <h1 className="font-headline text-3xl font-bold md:text-4xl">
+                      Tournament Bracket
+                  </h1>
+                  <p className="mt-2 text-muted-foreground">
+                      Follow the journey to crown the champion of Africa.
+                  </p>
+              </div>
 
-                    {isLoading && <Skeleton className="h-[500px] w-full" />}
-                    
-                    {!isLoading && !tournament && (
-                         <Card>
-                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Trophy />
-                                    No Tournament Found
-                                </CardTitle>
-                                <CardDescription>An administrator has not started a tournament yet.</CardDescription>
-                            </CardHeader>
-                        </Card>
-                    )}
+              {isLoading && <Skeleton className="h-[500px] w-full" />}
+              
+              {!isLoading && !tournament && (
+                    <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                              <Trophy />
+                              No Tournament Found
+                          </CardTitle>
+                          <CardDescription>An administrator has not started a tournament yet.</CardDescription>
+                      </CardHeader>
+                  </Card>
+              )}
 
-                    {!isLoading && tournament && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                             {/* Bracket Column */}
-                            <div className="lg:col-span-2">
-                                <Card>
-                                     <CardHeader>
-                                        <CardTitle className="flex items-center gap-2"><Trophy /> Knockout Stage</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex justify-between items-center gap-4">
-                                        {/* Quarter-Finals */}
-                                        <div className="flex flex-col gap-4 w-full">
-                                            <h3 className="font-semibold text-center text-muted-foreground">Quarter-Finals</h3>
-                                            <BracketNode match={quarterFinals[0]} />
-                                            <BracketNode match={quarterFinals[1]} />
-                                            <BracketNode match={quarterFinals[2]} />
-                                            <BracketNode match={quarterFinals[3]} />
-                                        </div>
-                                        {/* Semi-Finals */}
-                                        <div className="flex flex-col gap-20 w-full">
-                                             <h3 className="font-semibold text-center text-muted-foreground">Semi-Finals</h3>
-                                            <BracketNode match={semiFinals[0]} />
-                                            <BracketNode match={semiFinals[1]} />
-                                        </div>
-                                        {/* Final */}
-                                        <div className="flex flex-col justify-center w-full">
-                                            <h3 className="font-semibold text-center text-muted-foreground">Final</h3>
-                                            <BracketNode match={final} />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            
-                            {/* Champion & Top Scorers Column */}
-                            <div className="space-y-8">
-                                {champion && (
-                                     <Card className="bg-gradient-to-br from-amber-400 to-yellow-500 text-white">
-                                        <CardHeader className="text-center">
-                                            <CardTitle className="text-2xl">CHAMPION</CardTitle>
-                                            <CardDescription className="text-amber-100">Congratulations to the winner!</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="text-center">
-                                            <p className="text-4xl font-bold">{champion}</p>
-                                        </CardContent>
-                                    </Card>
-                                )}
+              {!isLoading && tournament && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Bracket Column */}
+                      <div className="lg:col-span-2">
+                          <Card>
+                                <CardHeader>
+                                  <CardTitle className="flex items-center gap-2"><Trophy /> Knockout Stage</CardTitle>
+                              </CardHeader>
+                              <CardContent className="flex justify-between items-center gap-4">
+                                  {/* Quarter-Finals */}
+                                  <div className="flex flex-col gap-4 w-full">
+                                      <h3 className="font-semibold text-center text-muted-foreground">Quarter-Finals</h3>
+                                      <BracketNode match={quarterFinals[0]} />
+                                      <BracketNode match={quarterFinals[1]} />
+                                      <BracketNode match={quarterFinals[2]} />
+                                      <BracketNode match={quarterFinals[3]} />
+                                  </div>
+                                  {/* Semi-Finals */}
+                                  <div className="flex flex-col gap-20 w-full">
+                                        <h3 className="font-semibold text-center text-muted-foreground">Semi-Finals</h3>
+                                      <BracketNode match={semiFinals[0]} />
+                                      <BracketNode match={semiFinals[1]} />
+                                  </div>
+                                  {/* Final */}
+                                  <div className="flex flex-col justify-center w-full">
+                                      <h3 className="font-semibold text-center text-muted-foreground">Final</h3>
+                                      <BracketNode match={final} />
+                                  </div>
+                              </CardContent>
+                          </Card>
+                      </div>
+                      
+                      {/* Champion & Top Scorers Column */}
+                      <div className="space-y-8">
+                          {champion && (
+                                <Card className="bg-gradient-to-br from-amber-400 to-yellow-500 text-white">
+                                  <CardHeader className="text-center">
+                                      <CardTitle className="text-2xl">CHAMPION</CardTitle>
+                                      <CardDescription className="text-amber-100">Congratulations to the winner!</CardDescription>
+                                  </CardHeader>
+                                  <CardContent className="text-center">
+                                      <p className="text-4xl font-bold">{champion}</p>
+                                  </CardContent>
+                              </Card>
+                          )}
 
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            Top Goal Scorers
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Player</TableHead>
-                                                    <TableHead>Team</TableHead>
-                                                    <TableHead className="text-right">Goals</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {topScorers.map(scorer => (
-                                                    <TableRow key={scorer.playerName}>
-                                                        <TableCell>{scorer.playerName}</TableCell>
-                                                        <TableCell>{scorer.teamName}</TableCell>
-                                                        <TableCell className="text-right font-bold">{scorer.goals}</TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                          <Card>
+                              <CardHeader>
+                                  <CardTitle className="flex items-center gap-2">
+                                      Top Goal Scorers
+                                  </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                  <Table>
+                                      <TableHeader>
+                                          <TableRow>
+                                              <TableHead>Player</TableHead>
+                                              <TableHead>Team</TableHead>
+                                              <TableHead className="text-right">Goals</TableHead>
+                                          </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                          {topScorers.map(scorer => (
+                                              <TableRow key={scorer.playerName}>
+                                                  <TableCell>{scorer.playerName}</TableCell>
+                                                  <TableCell>{scorer.teamName}</TableCell>
+                                                  <TableCell className="text-right font-bold">{scorer.goals}</TableCell>
+                                              </TableRow>
+                                          ))}
+                                      </TableBody>
+                                  </Table>
+                              </CardContent>
+                          </Card>
+                      </div>
 
-                        </div>
-                    )}
-                </div>
-            </main>
-        </TournamentLayout>
+                  </div>
+              )}
+          </div>
+        </main>
     );
 }

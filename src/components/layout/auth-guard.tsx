@@ -1,10 +1,10 @@
-
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppShell } from './app-shell';
 import { PublicLayout } from './public-layout';
 
 function FullPageLoading() {
@@ -29,30 +29,33 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
     }
 
     const isAuthPage = pathname === '/login' || pathname === '/register';
+    const isPublicPage =
+      pathname === '/' ||
+      pathname.startsWith('/tournament') ||
+      pathname.startsWith('/match');
 
     if (!user) {
-      // If user is not logged in and not on an auth page, stay on the current public page.
-      // If they try to access a non-public, non-auth page, they will be handled by the renderer.
-      if (isAuthPage) {
-        return;
+      // User is not logged in
+      if (!isAuthPage && !isPublicPage) {
+        // If trying to access a protected page, redirect to home
+        router.replace('/');
       }
     } else {
       // User is logged in
       const isAdmin = user.profile?.role === 'admin';
-      const validAdminPaths = ['/admin', '/schedule', '/matches', '/tournament'];
-      const validFederationPaths = ['/dashboard', '/matches', '/tournament'];
 
       if (isAuthPage) {
+        // If on an auth page, redirect to the correct dashboard
         router.replace(isAdmin ? '/admin' : '/dashboard');
         return;
       }
-      
-      if (isAdmin && !validAdminPaths.some(p => pathname.startsWith(p))) {
-          router.replace('/admin');
-          return;
+
+      if (isAdmin && !(pathname.startsWith('/admin') || pathname.startsWith('/schedule') || pathname.startsWith('/matches') || pathname.startsWith('/tournament'))) {
+         router.replace('/admin');
+         return;
       }
 
-      if (!isAdmin && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
+       if (!isAdmin && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
         router.replace('/dashboard');
       }
     }
@@ -62,22 +65,24 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
     return <FullPageLoading />;
   }
   
-  const isPublicPage =
+  const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/tournament') ||
     pathname.startsWith('/match');
-    
-  if (!user && !isPublicPage) {
-    // For any non-public page, show the auth page or redirect.
-    // This now correctly handles the case where a user tries to access `/dashboard` directly.
-    if(pathname === '/login' || pathname === '/register') {
-      return <>{children}</>;
-    }
-    router.replace('/');
-    return <FullPageLoading />;
+
+  if (!user && isPublicRoute) {
+    return <PublicLayout>{children}</PublicLayout>;
   }
 
-  return <>{children}</>;
+  if (!user && (pathname === '/login' || pathname === '/register')) {
+    return <>{children}</>;
+  }
+  
+  if (!user) {
+    return <PublicLayout>{children}</PublicLayout>;
+  }
+
+  return <AppShell>{children}</AppShell>;
 }
 
 export function AuthGuard({ children }: { children: ReactNode }) {
@@ -87,6 +92,8 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     setIsClient(true);
   }, []);
 
+  // While waiting for the client to mount, we can show a loader
+  // to prevent any flash of unstyled or incorrect content.
   if (!isClient) {
     return <FullPageLoading />;
   }
