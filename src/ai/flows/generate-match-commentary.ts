@@ -7,7 +7,7 @@
  * - generateMatchCommentary - A function that creates a play-by-play commentary for a match.
  */
 
-import { ai } from '@/ai/genkit';
+import { getGenkitAi } from '@/ai/genkit';
 import {
   GenerateMatchCommentaryInputSchema,
   GenerateMatchCommentaryOutputSchema,
@@ -18,14 +18,20 @@ import {
 export async function generateMatchCommentary(
   input: GenerateMatchCommentaryInput
 ): Promise<GenerateMatchCommentaryOutput> {
-  return generateMatchCommentaryFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'generateMatchCommentaryPrompt',
-  input: { schema: GenerateMatchCommentaryInputSchema },
-  output: { schema: GenerateMatchCommentaryOutputSchema },
-  prompt: `You are an expert football commentator. Generate a play-by-play commentary for a match between two teams based on their squads and player ratings.
+  const ai = getGenkitAi();
+  
+  const generateMatchCommentaryFlow = ai.defineFlow(
+    {
+      name: 'generateMatchCommentaryFlow',
+      inputSchema: GenerateMatchCommentaryInputSchema,
+      outputSchema: GenerateMatchCommentaryOutputSchema,
+    },
+    async (input) => {
+      const prompt = ai.definePrompt({
+        name: 'generateMatchCommentaryPrompt',
+        input: { schema: GenerateMatchCommentaryInputSchema },
+        output: { schema: GenerateMatchCommentaryOutputSchema },
+        prompt: `You are an expert football commentator. Generate a play-by-play commentary for a match between two teams based on their squads and player ratings.
 
   **Home Team: {{homeTeam.countryName}}**
   Squad:
@@ -50,19 +56,15 @@ const prompt = ai.definePrompt({
   
   Please generate the commentary, final score, goal details, and the winner ID now.
   `,
-});
+      });
 
-const generateMatchCommentaryFlow = ai.defineFlow(
-  {
-    name: 'generateMatchCommentaryFlow',
-    inputSchema: GenerateMatchCommentaryInputSchema,
-    outputSchema: GenerateMatchCommentaryOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input);
-    if (!output) {
-      throw new Error('AI did not return a valid output.');
+      const { output } = await prompt(input);
+      if (!output) {
+        throw new Error('AI did not return a valid output.');
+      }
+      return output;
     }
-    return output;
-  }
-);
+  );
+
+  return generateMatchCommentaryFlow(input);
+}
