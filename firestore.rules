@@ -55,18 +55,15 @@ service cloud.firestore {
     /**
      * @description Enforces user-ownership for user profile data.
      * @path /users/{userId}
-     * @allow (get, create) - An authenticated user can read and create their own user profile.
-     * @allow (update) - An admin can update any user's role.
+     * @allow (read, write) - An authenticated user can read and write to their own user profile.
      * @deny (list, delete) - Users cannot list or delete profiles directly.
-     * @principle Enforces document ownership for reads and creation.
+     * @principle Enforces document ownership for reads and writes.
      */
     match /users/{userId} {
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
-      allow get, create: if isSignedIn() && isOwner(userId);
-      // Admin can update any user's role
-      allow update: if isAdmin();
+      allow read, write: if isSignedIn() && isOwner(userId);
       allow list, delete: if false;
     }
 
