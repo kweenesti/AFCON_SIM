@@ -55,8 +55,9 @@ export default function DashboardPage() {
   const { data: squad, isLoading: isSquadLoading } =
     useCollection<Player>(playersRef);
 
+  // Correctly handle async form data with `values` and `FormProvider`
   const formMethods = useForm({
-    values: { // Use `values` to handle async data
+    values: { 
       managerName: federation?.managerName || '',
     },
   });
