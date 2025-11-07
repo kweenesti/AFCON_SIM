@@ -87,21 +87,24 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         router.replace('/admin');
     }
 
-  }, [user, isUserLoading, pathname, router, auth]);
+  }, [user, isUserLoading, pathname, router]);
 
-  // CRITICAL FIX: Do not render any protected content until authentication is resolved.
+  // CRITICAL: Do not render any protected content until authentication is resolved.
+  // Show a skeleton while loading, which prevents the rest of the component from rendering
+  // and causing premature hook execution or rendering incorrect states.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
 
   const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
   
-  // For unauthenticated users, only render public pages. Otherwise, show skeleton until redirect happens.
+  // For unauthenticated users, only render public pages. For protected pages,
+  // the useEffect above will trigger a redirect, so we show the skeleton in the meantime.
   if (!user) {
     return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
   }
 
-  // If a logged-in user somehow lands on login/register, show skeleton until redirect.
+  // If a logged-in user somehow lands on a public auth page, show skeleton until redirect.
   if (pathname === '/login' || pathname === '/register') {
     return <AppShellSkeleton />;
   }
