@@ -56,18 +56,12 @@ export default function DashboardPage() {
     useCollection<Player>(playersRef);
 
   const formMethods = useForm({
-    defaultValues: {
-      managerName: '',
+    values: { // Use `values` to handle async data
+      managerName: federation?.managerName || '',
     },
   });
 
-  const { reset, register } = formMethods;
-
-  useEffect(() => {
-    if (federation) {
-      reset({ managerName: federation.managerName });
-    }
-  }, [federation, reset]);
+  const { register } = formMethods;
 
   const teamRating = useMemo(() => computeTeamRating(squad || []), [squad]);
 
@@ -180,6 +174,7 @@ export default function DashboardPage() {
       <main className="container mx-auto p-4 md:p-8">
         <FormProvider {...formMethods}>
           <form
+            key={federation.id} // Add key to ensure form re-initializes on data load
             onSubmit={formMethods.handleSubmit(handleSaveChanges)}
             className="space-y-8"
           >
