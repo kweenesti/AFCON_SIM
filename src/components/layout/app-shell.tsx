@@ -33,16 +33,15 @@ import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 
 function AppShellSkeleton() {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <div className="w-full max-w-4xl space-y-8 p-4">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-64 w-full" />
-            </div>
-        </div>
-    )
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="w-full max-w-4xl space-y-8 p-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    </div>
+  );
 }
-
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -58,18 +57,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const handleLogin = () => {
     router.push('/login');
-  }
-
-  const isRegistered = !!user;
-  const isAdmin = user?.profile?.role === 'admin';
+  };
 
   // This is a robust way to prevent content rendering until user state is fully resolved.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
 
+  const isRegistered = !!user;
+  const isAdmin = user?.profile?.role === 'admin';
+
   let navItems = [];
-  
+
   if (isAdmin) {
     navItems = [
       { href: '/admin', label: 'Admin', icon: UserCog },
@@ -127,7 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
             </SidebarMenu>
           ) : !isUserLoading ? (
-             <SidebarMenu>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleLogin} tooltip="Sign In">
                   <LogIn />
