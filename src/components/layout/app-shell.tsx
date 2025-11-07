@@ -48,15 +48,13 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    // This effect now ONLY handles redirects AFTER loading is complete.
     if (isUserLoading) {
-      return; // Do nothing while loading.
+      return; 
     }
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/match/');
 
-    // Handle users who are NOT logged in
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
@@ -64,45 +62,39 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Handle users who ARE logged in
     const isAdmin = user.profile?.role === 'admin';
     const isFederation = user.profile?.role === 'federation';
 
+    // If logged in, redirect away from login/register
     if (pathname === '/login' || pathname === '/register') {
         router.replace(isAdmin ? '/admin' : '/dashboard');
         return;
     }
     
+    // If admin is trying to access federation dashboard
     if (isAdmin && pathname.startsWith('/dashboard')) {
         router.replace('/admin');
         return;
     }
     
-    if (isFederation && pathname.startsWith('/admin')) {
+    // If federation user is trying to access admin pages
+    if (isFederation && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
         router.replace('/dashboard');
         return;
     }
 
   }, [user, isUserLoading, pathname, router]);
 
-  // STAGE 1: AUTHENTICATION IS LOADING
-  // Show a full-page skeleton and do nothing else. This prevents any
-  // other logic from running and causing a race condition.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
   
-  // STAGE 2: LOADING IS COMPLETE, BUT USER IS NOT LOGGED IN
-  // For public pages, we can render the content directly.
-  // For protected pages, the useEffect above will handle the redirect to /login.
+  const isPublicPage = ['/','/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
   if (!user) {
-    const isPublicPage = ['/','/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
-    return isPublicPage ? <>{children}</> : <AppShellSkeleton />; // Show skeleton while redirecting
+    return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
   }
 
-  // STAGE 3: LOADING IS COMPLETE, AND USER IS LOGGED IN
-  // Render the full application shell with sidebar and content.
-  const isAdmin = user?.profile?.role === 'admin';
+  const isAdmin = user.profile?.role === 'admin';
 
   let navItems = [];
 
