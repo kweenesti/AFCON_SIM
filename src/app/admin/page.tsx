@@ -302,7 +302,13 @@ export default function AdminPage() {
   };
 
   if (isUserLoading || user?.profile?.role !== 'admin') {
-    return null;
+    return (
+      <AppShell>
+        <div className="flex h-full w-full items-center justify-center">
+          <Skeleton className="h-64 w-full max-w-4xl" />
+        </div>
+      </AppShell>
+    );
   }
   
   const hasTournamentStarted = !!tournament;
@@ -317,6 +323,7 @@ export default function AdminPage() {
   const canGenerateFinal = semiFinals.length === 2 && semiFinals.every(m => m.played) && final.length === 0;
 
   return (
+    <AppShell>
       <main className="container mx-auto p-4 md:p-8">
         <div className="mx-auto max-w-4xl space-y-8">
           <div className="text-center">
@@ -464,5 +471,6 @@ export default function AdminPage() {
 
         </div>
       </main>
+    </AppShell>
   );
 }

@@ -140,12 +140,23 @@ export default function DashboardPage() {
     });
   };
   
-  if (isUserLoading || isFederationLoading || user?.profile?.role === 'admin') {
-    return null;
+  if (isUserLoading || isFederationLoading) {
+    return (
+       <AppShell>
+        <div className="flex h-full w-full items-center justify-center">
+          <Skeleton className="h-64 w-full max-w-4xl" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (user?.profile?.role === 'admin') {
+     return null;
   }
 
   if (!federation) {
     return (
+      <AppShell>
         <main className="container mx-auto p-4 md:p-8">
            <Card>
             <CardHeader>
@@ -157,10 +168,12 @@ export default function DashboardPage() {
             </CardContent>
            </Card>
         </main>
+      </AppShell>
     );
   }
   
   return (
+    <AppShell>
       <main className="container mx-auto p-4 md:p-8">
         <FormProvider {...formMethods}>
           <form
@@ -228,5 +241,6 @@ export default function DashboardPage() {
           </form>
         </FormProvider>
       </main>
+    </AppShell>
   );
 }
