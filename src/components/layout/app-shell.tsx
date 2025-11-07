@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         { href: '/matches', label: 'Matches', icon: Swords },
         { href: '/tournament', label: 'Tournament', icon: Trophy },
       ];
-      headerDashboardLink = '/admin';
+      headerDashboardLink = '/admin'; // <-- CRITICAL FIX: Point header link to /admin for admins
     } else {
       // Regular federation user
       navItems = [
@@ -137,12 +137,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-12 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
-           {isRegistered ? (
+           {isRegistered && pathname !== headerDashboardLink ? ( // Hide button if already on the target page
               <Button variant="ghost" size="sm" asChild>
                 <Link href={headerDashboardLink}>
                     {user.profile?.role === 'admin' ? 'Go to Admin' : 'Go to Dashboard'}
                 </Link>
               </Button>
+           ) : isRegistered ? (
+             <div></div> // Placeholder to keep layout consistent
            ) : (
              <Button variant="ghost" size="sm" onClick={handleLogin}>
                 Sign In
