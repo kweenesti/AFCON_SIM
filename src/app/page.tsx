@@ -16,17 +16,21 @@ export default function Home() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
 
-  // Redirect logged-in users to their dashboard.
+  // Redirect logged-in users to their appropriate dashboard.
   useEffect(() => {
     if (!isUserLoading && user) {
-      router.replace('/dashboard');
+      if (user.profile?.role === 'admin') {
+        router.replace('/admin');
+      } else {
+        router.replace('/dashboard');
+      }
     }
   }, [user, isUserLoading, router]);
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 
-  // Show a loading skeleton while checking for a user session.
-  if (isUserLoading) {
+  // Show a loading skeleton while checking for a user session or redirecting.
+  if (isUserLoading || user) {
     return (
       <AppShell>
         <div className="flex min-h-screen w-full items-center justify-center">

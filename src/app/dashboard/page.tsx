@@ -39,6 +39,17 @@ export default function DashboardPage() {
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
 
+  // Redirect logic
+  useEffect(() => {
+    if (!isUserLoading) {
+      if (!user) {
+        router.replace('/');
+      } else if (user.profile?.role === 'admin') {
+        router.replace('/admin');
+      }
+    }
+  }, [user, isUserLoading, router]);
+
   const federationRef = useMemoFirebase(
     () => (user?.uid ? doc(firestore, 'federations', user.uid) : null),
     [firestore, user?.uid]
@@ -65,16 +76,6 @@ export default function DashboardPage() {
   const { register } = formMethods;
 
   const teamRating = useMemo(() => computeTeamRating(squad || []), [squad]);
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.replace('/');
-    }
-    // Redirect admins away from the federation dashboard
-    if (!isUserLoading && user?.profile?.role === 'admin') {
-      router.replace('/admin');
-    }
-  }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
     startGenerating(async () => {
@@ -138,12 +139,12 @@ export default function DashboardPage() {
       });
     });
   };
+  
+  const isLoading = isUserLoading || isFederationLoading || (federation && isSquadLoading);
 
-  const isLoading =
-    isUserLoading || isFederationLoading || (federation && isSquadLoading);
-
-  // If loading, or if the user is an admin who will be redirected, show a loader.
-  if (isLoading || (user && user.profile?.role === 'admin')) {
+  // While user data is loading, or if the user is an admin who will be redirected,
+  // show a loader to prevent content flashing.
+  if (isUserLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
@@ -155,6 +156,7 @@ export default function DashboardPage() {
     );
   }
 
+  // After loading, if there's no user, or no federation data for a non-admin user
   if (!user || (!federation && !isFederationLoading)) {
     return (
       <AppShell>
@@ -166,8 +168,20 @@ export default function DashboardPage() {
       </AppShell>
     );
   }
+  
+  // This prevents rendering flickering while federation data is loading for the first time
+  if (!federation) {
+     return (
+      <AppShell>
+        <div className="container mx-auto p-4 space-y-8">
+          <Skeleton className="h-12 w-1/3" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </AppShell>
+    );
+  }
 
-  if (!federation) return null;
 
   return (
     <AppShell>

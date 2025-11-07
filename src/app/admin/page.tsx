@@ -291,6 +291,7 @@ export default function AdminPage() {
 
   const isLoading = isUserLoading || isFederationsLoading || isTournamentLoading || areMatchesLoading;
 
+  // Show a loader while verifying the user or if the user is not yet determined
   if (isUserLoading || !user) {
     return (
       <AppShell>
@@ -298,14 +299,17 @@ export default function AdminPage() {
           <div className="mx-auto max-w-4xl space-y-8">
             <Skeleton className="h-12 w-1/2" />
             <Skeleton className="h-64 w-full" />
+             <Skeleton className="h-48 w-full" />
           </div>
         </main>
       </AppShell>
     );
   }
   
+  // After loading, if the user is not an admin, they will be redirected by the useEffect.
+  // Render nothing here to prevent content flashing.
   if (user.profile?.role !== 'admin') {
-      return null; // Render nothing while redirecting
+      return null;
   }
 
   const hasTournamentStarted = !!tournament;
@@ -465,5 +469,3 @@ export default function AdminPage() {
     </AppShell>
   );
 }
-
-    
