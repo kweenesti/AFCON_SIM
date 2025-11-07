@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '../icons/logo';
-import { useUser, useAuth, useFirebase } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 
@@ -49,11 +49,15 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   
   useEffect(() => {
-    if (isUserLoading) return;
+    // Wait until the authentication status is fully resolved before doing any redirects.
+    if (isUserLoading) {
+      return;
+    }
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
 
+    // If user is not logged in, redirect to login page if not already on a public page.
     if (!user) {
       if (!isPublicPage) {
         router.replace('/login');
@@ -61,17 +65,21 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // If user is logged in and on a public page, redirect them to their respective dashboard.
     if (isPublicPage) {
       router.replace(user.profile?.role === 'admin' ? '/admin' : '/dashboard');
       return;
     }
     
+    // If the user is an admin, ensure they are on an admin-accessible page.
     if (user.profile?.role === 'admin') {
       const isAdminPage = ['/admin', '/schedule', '/matches', '/tournament'].some(p => pathname.startsWith(p));
       if (!isAdminPage) {
         router.replace('/admin');
       }
-    } else if (user.profile?.role === 'federation') {
+    } 
+    // If the user is a federation member, ensure they are on a federation-accessible page.
+    else if (user.profile?.role === 'federation') {
       const isFederationPage = ['/dashboard', '/matches', '/tournament'].some(p => pathname.startsWith(p));
       if (!isFederationPage) {
         router.replace('/dashboard');
@@ -95,6 +103,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   // A user must be logged in to see any page with the AppShell.
   // The redirection logic above handles unauthenticated users.
   if (!user) {
+    // Render a skeleton or nothing while redirecting.
     return <AppShellSkeleton />;
   }
 
@@ -129,7 +138,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname === item.href}
+                    isActive={pathname.startsWith(item.href)}
                     tooltip={item.label}
                   >
                     <item.icon />
@@ -164,10 +173,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  // We cannot use any hooks that depend on Firebase context here.
-  // We can only check if the provider *exists* at a high level.
-  // All logic must be in the child component.
-  
   // This outer component acts as a boundary.
   // It ensures FirebaseClientProvider has mounted before its children try to access the context.
   return (
