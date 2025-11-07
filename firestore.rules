@@ -56,24 +56,26 @@ service cloud.firestore {
      * @description Enforces user-ownership for user profile data.
      * @path /users/{userId}
      * @allow (get) - An authenticated user can read their own user profile.
-     * @deny (list, create, update, delete) - Users cannot list, create, update, or delete profiles directly.
-     * @principle Enforces document ownership for reads.
+     * @allow (create) - An authenticated user can create their own user profile document.
+     * @allow (update) - An admin can update any user's role.
+     * @deny (list, delete) - Users cannot list or delete profiles directly.
+     * @principle Enforces document ownership for reads and creation.
      */
     match /users/{userId} {
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
       allow get: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
       // Admin can update any user's role
       allow update: if isAdmin();
-      allow list, create, delete: if false;
+      allow list, delete: if false;
     }
 
     /**
      * @description Enforces user-ownership for federation data based on a `representativeUid` field.
      * @path /federations/{federationId}
-     * @allow (get) - Anyone can read federation data.
-     * @allow (list) - Only admins can list all federations.
+     * @allow (get, list) - Anyone can read federation data. List is for admins only.
      * @allow (create) - An authenticated user can create a federation if their UID matches the `representativeUid` in the new document.
      * @allow (update, delete) - The user whose UID matches the `representativeUid` can update or delete the document.
      * @principle Enforces document ownership for writes using an internal UID field.
