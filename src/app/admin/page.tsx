@@ -16,8 +16,8 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, serverTimestamp, query, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
 import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw, Bot } from 'lucide-react';
-import { simulateMatchAction, restartTournamentAction, playMatchAction } from './actions';
+import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw, Bot, Database } from 'lucide-react';
+import { simulateMatchAction, restartTournamentAction, playMatchAction, seedFederationsAction } from './actions';
 import { AdminRoleForm } from './admin-role-form';
 import {
   AlertDialog,
@@ -299,7 +299,7 @@ function AdminDashboard() {
         if (result.success) {
             toast({
                 title: 'Tournament Restarted',
-                description: 'All matches have been cleared.',
+                description: 'All matches and federations have been cleared.',
             });
             setMessage('Tournament has been restarted.');
         } else {
@@ -310,6 +310,24 @@ function AdminDashboard() {
             });
             setMessage(result.message);
         }
+    });
+  };
+
+  const handleSeedFederations = () => {
+    startTransition(async () => {
+      const result = await seedFederationsAction();
+      if (result.success) {
+        toast({
+          title: 'Database Seeded',
+          description: '8 new federations have been registered.',
+        });
+      } else {
+        toast({
+          title: 'Seeding Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
     });
   };
   
@@ -347,11 +365,17 @@ function AdminDashboard() {
               Admin Actions
             </CardTitle>
             <CardDescription>
-              Grant administrative privileges to other users.
+              Grant administrative privileges to other users or seed the database with teams.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
               <AdminRoleForm />
+              <div className="border-t pt-4">
+                 <Button onClick={handleSeedFederations} variant="outline" disabled={isPending}>
+                    <Database className="mr-2" />
+                    {isPending ? 'Seeding...' : 'Seed Database (8 Teams)'}
+                 </Button>
+              </div>
           </CardContent>
         </Card>
 
@@ -411,7 +435,7 @@ function AdminDashboard() {
               </Button>
                 <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={!hasTournamentStarted || isPending}>
+                  <Button variant="destructive" disabled={isPending}>
                     <RefreshCw className="mr-2" />
                     Restart Tournament
                   </Button>
@@ -420,7 +444,7 @@ function AdminDashboard() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete all current tournament matches and reset the tournament state.
+                      This action cannot be undone. This will permanently delete all current tournament matches and registered federations.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -489,5 +513,3 @@ export default function AdminPage() {
     </AppShell>
   );
 }
-
-    

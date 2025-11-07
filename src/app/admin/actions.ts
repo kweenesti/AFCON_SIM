@@ -4,11 +4,14 @@ import 'dotenv/config';
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeAdminApp } from '@/lib/firebase-admin';
-import type { Federation, Player, Team } from '@/lib/types';
+import type { Federation, Player, Team, PlayerPosition } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
 import { generateMatchCommentary } from '@/ai/flows/generate-match-commentary';
-
+import { africanCountries } from '@/lib/countries';
+import { firstNames, lastNames } from '@/lib/random-names';
+import { playerPositions } from '@/lib/types';
+import { randInt } from '@/lib/generate-players';
 
 export async function grantAdminRole(prevState: any, formData: FormData) {
   const email = formData.get('email');
@@ -63,7 +66,7 @@ async function getTeamData(firestore: FirebaseFirestore.Firestore, teamId: strin
         representativeUid: teamData.representativeUid,
         representativeName: teamData.representativeName,
         representativeEmail: teamData.representativeEmail,
-        countryId: teamData.countryName, // Use countryName as countryId
+        countryId: teamData.countryName,
         countryName: teamData.countryName,
         managerName: teamData.managerName,
         squad: squad,
@@ -166,9 +169,86 @@ export async function restartTournamentAction(tournamentId: string | undefined):
 
         await batch.commit();
 
-        return { success: true, message: 'Tournament has been successfully restarted.' };
+        return { success: true, message: 'Tournament and all federations have been successfully restarted.' };
     } catch (error: any) {
         console.error('Error restarting tournament:', error);
         return { success: false, message: error.message || 'Could not restart the tournament.' };
+    }
+}
+
+// --- Seeding Logic ---
+const generateRandomName = () => {
+    const firstName = firstNames[randInt(0, firstNames.length - 1)];
+    const lastName = lastNames[randInt(0, lastNames.length - 1)];
+    return `${firstName} ${lastName}`;
+};
+
+const generateRatings = (naturalPosition: PlayerPosition) => {
+    const ratings: any = {};
+    playerPositions.forEach((pos) => {
+        const key = `${pos.toLowerCase()}Rating`;
+        if (pos === naturalPosition) {
+            ratings[key] = randInt(50, 100);
+        } else {
+            ratings[key] = randInt(0, 50);
+        }
+    });
+    return ratings;
+};
+
+export async function seedFederationsAction(): Promise<{ success: boolean; message: string }> {
+    try {
+        const adminApp = await initializeAdminApp();
+        const firestore = getFirestore(adminApp);
+        const auth = getAuth(adminApp);
+        const batch = firestore.batch();
+
+        const federationsCollection = firestore.collection('federations');
+        const existingFederations = await federationsCollection.get();
+        const existingCountries = new Set(existingFederations.docs.map(d => d.data().countryName));
+
+        const availableCountries = africanCountries.filter(c => !existingCountries.has(c));
+        const countriesToSeed = availableCountries.sort(() => 0.5 - Math.random()).slice(0, 8);
+
+        if (countriesToSeed.length === 0) {
+            return { success: false, message: "No new countries available to seed." };
+        }
+
+        for (const countryName of countriesToSeed) {
+            const federationId = `seed_${countryName.toLowerCase().replace(/\s/g, '')}`;
+            const federationRef = firestore.collection('federations').doc(federationId);
+
+            const federationData: Omit<Federation, 'representativeUid'> & { representativeUid?: string } = {
+                id: federationId,
+                representativeName: `Rep ${countryName}`,
+                representativeEmail: `rep+${federationId}@tournament.com`,
+                countryId: countryName,
+                countryName: countryName,
+                managerName: `Manager ${countryName}`,
+            };
+            batch.set(federationRef, federationData);
+
+            const playersCollectionRef = federationRef.collection('players');
+            for (let i = 0; i < 23; i++) {
+                const playerDocRef = playersCollectionRef.doc();
+                const naturalPosition = playerPositions[randInt(0, playerPositions.length - 1)];
+                const playerData: Player = {
+                    id: playerDocRef.id,
+                    federationId: federationId,
+                    name: generateRandomName(),
+                    naturalPosition,
+                    isCaptain: i === 0,
+                    ...generateRatings(naturalPosition),
+                };
+                batch.set(playerDocRef, playerData);
+            }
+        }
+
+        await batch.commit();
+        return { success: true, message: `Successfully seeded ${countriesToSeed.length} new federations.` };
+
+    } catch (error: any) {
+        console.error("Error seeding database:", error);
+        return { success: false, message: error.message || "An unexpected error occurred during seeding." };
     }
 }
