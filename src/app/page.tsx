@@ -8,9 +8,11 @@ import { useUser } from '@/firebase';
 import { AppShell } from '@/components/layout/app-shell';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   const heroImage = placeholderImages.find((img) => img.id === 'hero-stadium');
 

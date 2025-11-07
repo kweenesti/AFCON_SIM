@@ -128,7 +128,8 @@ export default function DashboardPage() {
   };
   
   // Show a loading skeleton while we verify user, role and data
-  if (isUserLoading || (user && !federation && isFederationLoading)) {
+  // or if user is an admin (who will be redirected by AppShell)
+  if (isUserLoading || user?.profile?.role === 'admin' || (user && !federation && isFederationLoading)) {
     return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
@@ -159,11 +160,13 @@ export default function DashboardPage() {
     );
   }
   
-  // If we have a federation user, but no federation data yet (maybe still loading, or doesn't exist)
+  // This case handles a federation user whose data is now available.
+  // Admins are already filtered out by the loading state above.
   if (!federation) {
      return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">
+          <p>Loading your federation data...</p>
           <Skeleton className="h-12 w-1/3" />
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-96 w-full" />

@@ -48,14 +48,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       // Define page categories
       const publicPages = ['/', '/login', '/register'];
       const adminOnlyPages = ['/admin', '/schedule'];
-      const adminAllowedPages = [...adminOnlyPages, '/matches', '/tournament'];
+      const adminAllowedPages = [...adminOnlyPages, '/matches', '/tournament']; // Pages admins can be on
       const isOnPublicPage = publicPages.includes(pathname);
       const isOnAdminOnlyPage = adminOnlyPages.includes(pathname);
 
 
       if (isAdmin) {
         // If an admin is on any page that is NOT an admin-allowed page, redirect them to /admin.
-        if (!adminAllowedPages.includes(pathname)) {
+        if (!adminAllowedPages.some(p => pathname.startsWith(p))) {
           router.replace('/admin');
         }
       } else if (isFederation) {
