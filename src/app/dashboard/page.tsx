@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
   const federationRef = useMemoFirebase(
     () => (user ? doc(firestore, 'federations', user.uid) : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
   const { data: federation, isLoading: isFederationLoading } =
     useDoc<Federation>(federationRef);
@@ -50,7 +50,7 @@ export default function DashboardPage() {
       federation
         ? collection(firestore, 'federations', federation.id, 'players')
         : null,
-    [firestore, federation]
+    [firestore, federation?.id]
   );
   const { data: squad, isLoading: isSquadLoading } =
     useCollection<Player>(playersRef);
