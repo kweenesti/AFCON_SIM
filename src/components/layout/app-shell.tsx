@@ -49,9 +49,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
 
   useEffect(() => {
-    // This effect should only run AFTER the initial loading is complete.
     if (isUserLoading) {
-      return;
+      return; // Do not run the effect until loading is complete
     }
 
     const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
@@ -89,17 +88,14 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
   }, [user, isUserLoading, pathname, router]);
 
-  // CRITICAL: Do not render any protected content until authentication is resolved.
-  // Show a skeleton while loading, which prevents the rest of the component from rendering
-  // and causing premature hook execution or rendering incorrect states.
+  // CRITICAL: Halt all rendering and logic until authentication is resolved.
   if (isUserLoading) {
     return <AppShellSkeleton />;
   }
 
   const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
   
-  // For unauthenticated users, only render public pages. For protected pages,
-  // the useEffect above will trigger a redirect, so we show the skeleton in the meantime.
+  // For unauthenticated users, render public pages or a skeleton while redirecting.
   if (!user) {
     return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
   }
@@ -137,7 +133,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   if (pathname === '/') {
     return <>{children}</>;
   }
-
 
   return (
     <SidebarProvider>
@@ -183,7 +178,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
-
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
