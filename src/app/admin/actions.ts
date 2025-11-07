@@ -8,7 +8,6 @@ import type { Federation, Match, Player, Team, Tournament } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
 import { generateMatchCommentary } from '@/ai/flows/generate-match-commentary';
-import { sendMatchResultEmail } from '@/lib/email';
 
 
 export async function grantAdminRole(prevState: any, formData: FormData) {
@@ -69,22 +68,6 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
         };
         await updateDoc(matchRef, updatedMatchData);
         
-        const fullMatchData: Match = {
-            id: matchId,
-            homeTeamId,
-            awayTeamId,
-            homeTeamName: homeTeam.countryName,
-            awayTeamName: awayTeam.countryName,
-            tournamentId: '', 
-            stage: 'quarter-finals',
-            played: true,
-            createdAt: serverTimestamp(),
-            ...updatedMatchData
-        };
-
-        await sendMatchResultEmail({ recipientEmail: homeTeam.representativeEmail, match: fullMatchData });
-        await sendMatchResultEmail({ recipientEmail: awayTeam.representativeEmail, match: fullMatchData });
-
         return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
         console.error('Error simulating match:', error);
@@ -117,22 +100,6 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
             commentary: result.commentary,
         };
         await updateDoc(matchRef, updatedMatchData);
-        
-        const fullMatchData: Match = {
-            id: matchId,
-            homeTeamId,
-            awayTeamId,
-            homeTeamName: homeTeam.countryName,
-            awayTeamName: awayTeam.countryName,
-            tournamentId: '',
-            stage: 'quarter-finals',
-            played: true,
-            createdAt: serverTimestamp(),
-            ...updatedMatchData
-        };
-
-        await sendMatchResultEmail({ recipientEmail: homeTeam.representativeEmail, match: fullMatchData });
-        await sendMatchResultEmail({ recipientEmail: awayTeam.representativeEmail, match: fullMatchData });
 
         return { success: true, message: `Match ${matchId} played with commentary.` };
     } catch (error: any) {
