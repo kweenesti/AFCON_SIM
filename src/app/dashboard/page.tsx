@@ -23,8 +23,9 @@ import {
   useFirestore,
   useUser,
   useDoc,
+  updateDocumentNonBlocking,
 } from '@/firebase';
-import { doc, collection, writeBatch, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
@@ -39,7 +40,7 @@ export default function DashboardPage() {
   const [isGenerating, startGenerating] = useTransition();
 
   const federationRef = useMemoFirebase(
-    () => (user ? doc(firestore, 'federations', user.uid) : null),
+    () => (user?.uid ? doc(firestore, 'federations', user.uid) : null),
     [firestore, user?.uid]
   );
   const { data: federation, isLoading: isFederationLoading } =
@@ -47,7 +48,7 @@ export default function DashboardPage() {
 
   const playersRef = useMemoFirebase(
     () =>
-      federation
+      federation?.id
         ? collection(firestore, 'federations', federation.id, 'players')
         : null,
     [firestore, federation?.id]
@@ -55,9 +56,8 @@ export default function DashboardPage() {
   const { data: squad, isLoading: isSquadLoading } =
     useCollection<Player>(playersRef);
 
-  // Correctly handle async form data with `values` and `FormProvider`
   const formMethods = useForm({
-    values: { 
+    values: {
       managerName: federation?.managerName || '',
     },
   });
@@ -84,7 +84,7 @@ export default function DashboardPage() {
         federation.id,
         'players'
       );
-      
+
       const existingPlayersSnapshot = await getDocs(playersCollectionRef);
       existingPlayersSnapshot.forEach((playerDoc) => {
         batch.delete(playerDoc.ref);
@@ -94,7 +94,7 @@ export default function DashboardPage() {
         const playerDocRef = doc(playersCollectionRef);
         batch.set(playerDocRef, { ...player, id: playerDocRef.id });
       });
-      
+
       try {
         await batch.commit();
         const rating = computeTeamRating(newSquad);
@@ -102,7 +102,7 @@ export default function DashboardPage() {
           title: 'Squad Generated!',
           description: `New team rating: ${rating}`,
         });
-      } catch(error: any) {
+      } catch (error: any) {
         toast({
           title: 'Error Generating Squad',
           description: error.message || 'Could not generate a new squad.',
@@ -113,8 +113,8 @@ export default function DashboardPage() {
   };
 
   const handleSaveChanges = (formData: { managerName: string }) => {
-    startSaving(async () => {
-      if (!user || !federation || !firestore || !squad) {
+    startSaving(() => {
+      if (!user || !federation || !firestore) {
         toast({
           title: 'Error',
           description: 'You must be logged in and part of a federation.',
@@ -125,19 +125,13 @@ export default function DashboardPage() {
 
       const federationDocRef = doc(firestore, 'federations', federation.id);
       
-      try {
-        await updateDoc(federationDocRef, { managerName: formData.managerName });
-        toast({
-          title: 'Success!',
-          description: 'Your team information has been saved.',
-        });
-      } catch (error: any) {
-        toast({
-          title: 'Save Error',
-          description: error.message || 'Could not save your changes.',
-          variant: 'destructive',
-        });
-      }
+      // Use the non-blocking update function
+      updateDocumentNonBlocking(federationDocRef, { managerName: formData.managerName });
+
+      toast({
+        title: 'Success!',
+        description: 'Your team information has been saved.',
+      });
     });
   };
 
