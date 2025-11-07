@@ -48,7 +48,7 @@ export default function TournamentPage() {
     const firestore = useFirestore();
 
     const latestTournamentQuery = useMemoFirebase(
-      () => query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)),
+      () => (firestore ? query(collection(firestore, 'tournaments'), orderBy('createdAt', 'desc'), limit(1)) : null),
       [firestore]
     );
     const { data: tournaments, isLoading: isTournamentLoading } = useCollection<Tournament>(latestTournamentQuery);

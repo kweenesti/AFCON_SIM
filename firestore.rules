@@ -95,19 +95,14 @@ service cloud.firestore {
      * @principle Enforces hierarchical ownership and validates relational integrity.
      */
     match /federations/{federationId}/players/{playerId} {
-      function isOwner(federationId) {
-        return request.auth.uid == federationId;
+       function isFederationOwner() {
+        return get(/databases/$(database)/documents/federations/$(federationId)).data.representativeUid == request.auth.uid;
       }
-
-       function isExistingOwner(federationId) {
-        return isOwner(federationId) && resource != null;
-      }
-
-      allow list: if isOwner(federationId) || isAdmin();
-      allow create: if isSignedIn() && isOwner(federationId) && request.resource.data.federationId == federationId;
-      allow get: if isOwner(federationId) || isAdmin();
-      allow update: if isExistingOwner(federationId) && request.resource.data.federationId == resource.data.federationId;
-      allow delete: if isExistingOwner(federationId);
+      
+      allow list, get: if isFederationOwner() || isAdmin();
+      allow create: if isFederationOwner() && request.resource.data.federationId == federationId;
+      allow update: if isFederationOwner() && request.resource.data.federationId == resource.data.federationId;
+      allow delete: if isFederationOwner();
     }
 
     /**
