@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFormState } from 'react-hook-form';
+import { useActionState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { grantAdminRole } from './actions';
 import { UserPlus } from 'lucide-react';
-import { useEffect } from 'react';
 
 const FormSchema = z.object({
   email: z.string().email('Please enter a valid email.'),
@@ -42,7 +41,7 @@ export function AdminRoleForm() {
     },
   });
 
-  const [state, formAction] = useFormState(grantAdminRole, initialState);
+  const [state, formAction] = useActionState(grantAdminRole, initialState);
 
   useEffect(() => {
     if (state.message) {
