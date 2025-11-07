@@ -46,6 +46,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const { areServicesAvailable } = useFirebase();
 
   const handleLogout = () => {
     signOut(auth).then(() => {
@@ -54,7 +55,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (isUserLoading) return;
+    if (!areServicesAvailable || isUserLoading) return;
 
     const publicPages = ['/', '/login', '/register'];
     const isPublicPage = publicPages.includes(pathname);
@@ -88,9 +89,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         router.replace('/dashboard');
       }
     }
-  }, [user, isUserLoading, pathname, router]);
+  }, [user, isUserLoading, pathname, router, areServicesAvailable]);
 
-  if (isUserLoading || !user) {
+  if (!areServicesAvailable || isUserLoading || !user) {
     return <AppShellSkeleton />;
   }
 
@@ -159,11 +160,5 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { areServicesAvailable } = useFirebase();
-
-  if (!areServicesAvailable) {
-     return <AppShellSkeleton />;
-  }
-
   return <AppShellContent>{children}</AppShellContent>;
 }
