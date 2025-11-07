@@ -47,7 +47,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  
+
   useEffect(() => {
     // CRITICAL: Do not run any logic until Firebase has confirmed the auth state.
     if (isUserLoading) {
@@ -101,38 +101,33 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     return <AppShellSkeleton />;
   }
 
-  const isPublicAuthPage = ['/login', '/register'].includes(pathname);
+  const isPublicPage = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
   
   // For unauthenticated users, only render public pages. Otherwise, show skeleton until redirect happens.
   if (!user) {
-    const isAllowedPublic = ['/', '/login', '/register'].includes(pathname) || pathname.startsWith('/match/');
-    return isAllowedPublic ? <>{children}</> : <AppShellSkeleton />;
+    return isPublicPage ? <>{children}</> : <AppShellSkeleton />;
   }
 
   // If a logged-in user somehow lands on login/register, show skeleton until redirect.
-  if (isPublicAuthPage) {
+  if (pathname === '/login' || pathname === '/register') {
     return <AppShellSkeleton />;
   }
 
   // User is authenticated, render the full shell
   const isAdmin = user.profile?.role === 'admin';
 
-  let navItems = [];
-
-  if (isAdmin) {
-    navItems = [
-      { href: '/admin', label: 'Admin', icon: UserCog },
-      { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
-      { href: '/matches', label: 'Matches', icon: Swords },
-      { href: '/tournament', label: 'Tournament', icon: Trophy },
-    ];
-  } else {
-    navItems = [
-      { href: '/dashboard', label: 'Dashboard', icon: Home },
-      { href: '/matches', label: 'Matches', icon: Swords },
-      { href: '/tournament', label: 'Tournament', icon: Trophy },
-    ];
-  }
+  const navItems = isAdmin
+    ? [
+        { href: '/admin', label: 'Admin', icon: UserCog },
+        { href: '/schedule', label: 'Scheduler', icon: CalendarDays },
+        { href: '/matches', label: 'Matches', icon: Swords },
+        { href: '/tournament', label: 'Tournament', icon: Trophy },
+      ]
+    : [
+        { href: '/dashboard', label: 'Dashboard', icon: Home },
+        { href: '/matches', label: 'Matches', icon: Swords },
+        { href: '/tournament', label: 'Tournament', icon: Trophy },
+      ];
 
   const handleLogout = () => {
     if (auth) {
@@ -141,6 +136,12 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       });
     }
   };
+
+
+  // Don't render the sidebar on the public homepage
+  if (pathname === '/') {
+    return <>{children}</>;
+  }
 
 
   return (
