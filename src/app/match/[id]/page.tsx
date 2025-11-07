@@ -4,7 +4,6 @@
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Match, Goal } from '@/lib/types';
-import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, Shield, Goal as GoalIcon, Bot } from 'lucide-react';
@@ -17,6 +16,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
+function MatchLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Link href="/" className="font-headline text-lg font-bold">
+            African Nations Tournament
+          </Link>
+          <nav className="flex items-center gap-4">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/register">Get Started</Link>
+            </Button>
+          </nav>
+        </div>
+      </header>
+      <main className="flex-1">{children}</main>
+      <footer className="border-t bg-muted py-4">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} African Nations Tournament. All Rights Reserved.
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 
 export default function MatchPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -30,41 +60,41 @@ export default function MatchPage({ params }: { params: { id: string } }) {
 
   if (isLoading) {
     return (
-        <AppShell>
+        <MatchLayout>
              <main className="container mx-auto p-4 md:p-8">
                 <div className="mx-auto max-w-2xl space-y-8">
                     <Skeleton className="h-16 w-3/4 self-center" />
                     <Skeleton className="h-64 w-full" />
                 </div>
              </main>
-        </AppShell>
+        </MatchLayout>
     );
   }
 
   if (error) {
     return (
-        <AppShell>
+        <MatchLayout>
              <main className="container mx-auto p-4 md:p-8">
                 <p>Error: {error.message}</p>
              </main>
-        </AppShell>
+        </MatchLayout>
     )
   }
 
   if (!match) {
     return (
-        <AppShell>
+        <MatchLayout>
              <main className="container mx-auto p-4 md:p-8">
                  <p>Match not found.</p>
             </main>
-        </AppShell>
+        </MatchLayout>
     );
   }
 
   const sortedGoals = match.goals?.sort((a, b) => a.minute - b.minute) || [];
 
   return (
-    <AppShell>
+    <MatchLayout>
       <main className="container mx-auto p-4 md:p-8">
         <div className="mx-auto max-w-3xl space-y-8">
            <div className="text-center space-y-2">
@@ -147,6 +177,6 @@ export default function MatchPage({ params }: { params: { id: string } }) {
             )}
         </div>
       </main>
-    </AppShell>
+    </MatchLayout>
   );
 }

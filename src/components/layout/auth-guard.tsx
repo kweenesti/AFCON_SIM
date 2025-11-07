@@ -27,7 +27,11 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
     }
 
     const isAuthPage = pathname === '/login' || pathname === '/register';
-    const isPublicPage = isAuthPage || pathname === '/';
+    const isPublicPage =
+      isAuthPage ||
+      pathname === '/' ||
+      pathname.startsWith('/tournament') ||
+      pathname.startsWith('/match');
 
     if (!user) {
       if (!isPublicPage) {
@@ -58,13 +62,18 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
     return <FullPageLoading />;
   }
 
-  const isPublicPage =
-    pathname === '/' || pathname === '/login' || pathname === '/register';
-  if (isPublicPage && !user) {
+  const isPublicRoute =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname.startsWith('/tournament') ||
+    pathname.startsWith('/match');
+    
+  if (isPublicRoute && !user) {
     return <>{children}</>;
   }
 
-  if (!user && !isPublicPage) {
+  if (!user && !isPublicRoute) {
     return <FullPageLoading />;
   }
 

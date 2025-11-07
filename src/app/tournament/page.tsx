@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import type { Match, Tournament } from '@/lib/types';
-import { AppShell } from '@/components/layout/app-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trophy } from 'lucide-react';
@@ -18,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
 
 
 function BracketNode({ match }: { match: Match | undefined }) {
@@ -43,6 +43,35 @@ function BracketNode({ match }: { match: Match | undefined }) {
     </Link>
   );
 }
+
+function TournamentLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Link href="/" className="font-headline text-lg font-bold">
+            African Nations Tournament
+          </Link>
+          <nav className="flex items-center gap-4">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign In</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/register">Get Started</Link>
+            </Button>
+          </nav>
+        </div>
+      </header>
+      <main className="flex-1">{children}</main>
+      <footer className="border-t bg-muted py-4">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          &copy; {new Date().getFullYear()} African Nations Tournament. All Rights Reserved.
+        </div>
+      </footer>
+    </div>
+  );
+}
+
 
 export default function TournamentPage() {
     const firestore = useFirestore();
@@ -105,7 +134,7 @@ export default function TournamentPage() {
 
 
     return (
-        <AppShell>
+        <TournamentLayout>
              <main className="container mx-auto p-4 md:p-8">
                 <div className="mx-auto max-w-6xl space-y-8">
                     <div className="text-center">
@@ -210,6 +239,6 @@ export default function TournamentPage() {
                     )}
                 </div>
             </main>
-        </AppShell>
+        </TournamentLayout>
     );
 }

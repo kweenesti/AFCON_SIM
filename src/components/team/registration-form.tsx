@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,9 +46,10 @@ import {
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { ScrollArea } from '../ui/scroll-area';
 import {
-  useAuth,
   useFirestore,
   useUser,
+  useCollection,
+  useMemoFirebase,
 } from '@/firebase';
 import { doc, collection, setDoc, writeBatch } from 'firebase/firestore';
 import { randInt } from '@/lib/generate-players';
@@ -116,6 +117,19 @@ export function RegistrationForm() {
     name: 'squad',
   });
 
+  const federationsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'federations') : null),
+    [firestore]
+  );
+  const { data: federations } = useCollection<Federation>(federationsRef);
+
+  const availableCountries = useMemo(() => {
+    if (!federations) return africanCountries;
+    const registeredCountries = new Set(federations.map(f => f.countryName));
+    return africanCountries.filter(c => !registeredCountries.has(c));
+  }, [federations]);
+
+
   const handleNext = async () => {
     const fieldsToValidate = ['countryName', 'managerName'];
     const isValid = await form.trigger(fieldsToValidate as any);
@@ -157,6 +171,10 @@ export function RegistrationForm() {
           countryName: data.countryName,
           managerName: data.managerName,
           countryId: data.countryName, // using name as id for simplicity
+          id: user.uid,
+          representativeEmail: user.email,
+          representativeName: user.profile?.displayName,
+
         }, { merge: true });
 
         // Use a batch write for players for efficiency
@@ -230,7 +248,7 @@ export function RegistrationForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {africanCountries.map((country) => (
+                        {availableCountries.map((country) => (
                           <SelectItem key={country} value={country}>
                             {country}
                           </SelectItem>
