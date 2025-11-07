@@ -8,11 +8,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     match /countries/{countryId} {
@@ -27,8 +27,7 @@ service cloud.firestore {
 
     match /federations/{federationId} {
       allow read: if true;
-      allow create: if isOwner(federationId);
-      allow update, delete: if isOwner(federationId);
+      allow create, update, delete: if isOwner(federationId);
     }
 
     match /federations/{federationId}/players/{playerId} {
@@ -40,13 +39,12 @@ service cloud.firestore {
 
     match /tournaments/{tournamentId} {
       allow read: if true;
-      allow create, delete: if isAdmin();
-      allow update: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     match /matches/{matchId} {
-        allow read: if true;
-        allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
   }
 }
