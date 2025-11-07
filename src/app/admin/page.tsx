@@ -41,7 +41,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  // Fetch all federations
+  // Fetch all federations - ONLY if user is an admin
   const federationsRef = useMemoFirebase(
     () => (firestore && user?.profile?.role === 'admin' ? collection(firestore, 'federations') : null),
     [firestore, user?.profile?.role]
