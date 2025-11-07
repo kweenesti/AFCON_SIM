@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo, useTransition } from 'react';
@@ -58,7 +57,6 @@ export default function DashboardPage() {
   } = useCollection<Player>(playersRef);
 
   const formMethods = useForm({
-    // Use `values` to ensure the form reacts to async data loading
     values: {
       managerName: federation?.managerName || '',
     },
@@ -66,8 +64,6 @@ export default function DashboardPage() {
 
   const { reset } = formMethods;
 
-  // This effect safely resets the form once the federation data is loaded.
-  // This is the correct pattern for handling async default values with react-hook-form.
   useEffect(() => {
     if (federation) {
       reset({ managerName: federation.managerName });
@@ -83,9 +79,8 @@ export default function DashboardPage() {
   }, [user, isUserLoading, router]);
 
   const handleGenerateSquad = () => {
-    if (!squad) return;
-    const newSquad = generatePlayers(squad);
-    setSquad(newSquad); // Optimistically update the local state from the hook
+    const newSquad = generatePlayers(squad || []);
+    setSquad(newSquad);
     const rating = computeTeamRating(newSquad);
     toast({
       title: 'Squad Generated!',
@@ -106,11 +101,9 @@ export default function DashboardPage() {
 
       const batch = writeBatch(firestore);
 
-      // 1. Update manager name in federation document
       const federationDocRef = doc(firestore, 'federations', federation.id);
       batch.update(federationDocRef, { managerName: formData.managerName });
 
-      // 2. Overwrite the players subcollection with the new squad
       const playersCollectionRef = collection(
         firestore,
         'federations',
@@ -118,20 +111,14 @@ export default function DashboardPage() {
         'players'
       );
 
-      // First, retrieve all existing player documents to delete them
       const existingPlayersSnapshot = await getDocs(playersCollectionRef);
       existingPlayersSnapshot.forEach((playerDoc) => {
         batch.delete(playerDoc.ref);
       });
 
-      // Set/overwrite each player document in the new squad
       squad.forEach((player) => {
-        const playerDocRef = doc(playersCollectionRef);
-        batch.set(playerDocRef, {
-          ...player,
-          id: playerDocRef.id,
-          federationId: federation.id,
-        });
+        const playerDocRef = doc(playersCollectionRef, player.id);
+        batch.set(playerDocRef, player);
       });
 
       try {
