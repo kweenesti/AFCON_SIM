@@ -17,7 +17,6 @@ import { useAuth, useFirestore } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
-import { RegistrationForm } from '@/components/team/registration-form';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -58,10 +57,11 @@ export default function RegisterPage() {
         
         toast({
           title: 'Registration Successful!',
-          description: 'Redirecting to your dashboard...',
+          description: 'Redirecting...',
         });
         
-        if (isAdmin) {
+        // After profile is created, redirect.
+        if (role === 'admin') {
           router.replace('/admin');
         } else {
           router.replace('/dashboard');

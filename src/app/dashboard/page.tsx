@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useTransition } from 'react';
+import { useMemo, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Federation, Player } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,11 @@ import {
   useUser,
   useDoc,
 } from '@/firebase';
-import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, collection, writeBatch, getDocs, setDoc } from 'firebase/firestore';
 import { AppShell } from '@/components/layout/app-shell';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, Save, ShieldCheck } from 'lucide-react';
 import { useForm, FormProvider } from 'react-hook-form';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { RegistrationForm } from '@/components/team/registration-form';
 
 export default function DashboardPage() {
@@ -38,6 +37,13 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [isSaving, startSaving] = useTransition();
   const [isGenerating, startGenerating] = useTransition();
+
+  // Redirect admins away from the federation dashboard
+  useEffect(() => {
+    if (!isUserLoading && user?.profile?.role === 'admin') {
+      router.replace('/admin');
+    }
+  }, [user, isUserLoading, router]);
 
   const federationRef = useMemoFirebase(
     () => (user?.uid ? doc(firestore, 'federations', user.uid) : null),
@@ -107,7 +113,7 @@ export default function DashboardPage() {
   };
 
   const handleSaveChanges = (formData: { managerName: string }) => {
-    startSaving(() => {
+    startSaving(async () => {
       if (!user || !federation || !firestore) {
         toast({
           title: 'Error',
@@ -119,18 +125,25 @@ export default function DashboardPage() {
 
       const federationDocRef = doc(firestore, 'federations', federation.id);
       
-      updateDocumentNonBlocking(federationDocRef, { managerName: formData.managerName });
-
-      toast({
-        title: 'Success!',
-        description: 'Your team information has been saved.',
-      });
+      try {
+        await setDoc(federationDocRef, { managerName: formData.managerName }, { merge: true });
+        toast({
+          title: 'Success!',
+          description: 'Your team information has been saved.',
+        });
+      } catch (error: any) {
+         toast({
+          title: 'Save Error',
+          description: error.message || 'Could not save changes.',
+          variant: 'destructive'
+        });
+      }
     });
   };
   
   // Show a loading skeleton while we verify user, role and data
-  // or if user is an admin (who will be redirected by AppShell)
-  if (isUserLoading || isFederationLoading) {
+  // or if user is an admin (who will be redirected)
+  if (isUserLoading || isFederationLoading || user?.profile?.role === 'admin') {
     return (
       <AppShell>
         <div className="container mx-auto p-4 space-y-8">

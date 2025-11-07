@@ -19,8 +19,7 @@ import type { Federation, Tournament, Match } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { List, PlayCircle, Swords, Zap, UserCog, RefreshCw } from 'lucide-react';
 import { simulateMatchAction, restartTournamentAction } from './actions';
-import { AdminRoleForm } from './admin-admin-role-form';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { AdminRoleForm } from './admin-role-form';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,7 +71,7 @@ export default function AdminPage() {
 
 
   const handleStartTournament = async () => {
-    if (!federations) return;
+    if (!federations || !firestore) return;
 
     if (federations.length !== 8) {
       setMessage('Need exactly 8 teams to start the tournament.');
@@ -84,18 +83,20 @@ export default function AdminPage() {
       return;
     }
     
-    if (!firestore) return;
-
-    const tournamentRef = doc(collection(firestore, "tournaments"));
-    const newTournament = {
-        id: tournamentRef.id,
+    const batch = writeBatch(firestore);
+    const tournamentDocRef = doc(collection(firestore, 'tournaments'));
+    
+    const newTournament: Tournament = {
+        id: tournamentDocRef.id,
         started: true,
         teams: federations.map(f => f.id),
         stage: 'quarter-finals',
         createdAt: serverTimestamp(),
     };
     
-    addDocumentNonBlocking(collection(firestore, 'tournaments'), newTournament);
+    batch.set(tournamentDocRef, newTournament);
+
+    await batch.commit();
 
     setMessage('Tournament created successfully!');
     toast({
