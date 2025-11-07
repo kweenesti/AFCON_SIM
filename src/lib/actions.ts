@@ -1,10 +1,11 @@
+
 'use server';
 
+import { suggestMatchSchedule } from '@/ai/flows/suggest-match-schedule';
 import {
-  suggestMatchSchedule,
   type SuggestMatchScheduleInput,
   type SuggestMatchScheduleOutput,
-} from '@/ai/flows/suggest-match-schedule';
+} from '@/ai/schemas/match-schedule';
 import { z } from 'zod';
 
 const parseRecord = (input: string): Record<string, any> => {
