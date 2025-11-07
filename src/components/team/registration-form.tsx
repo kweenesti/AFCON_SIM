@@ -49,7 +49,6 @@ import { ScrollArea } from '../ui/scroll-area';
 import {
   useAuth,
   useFirestore,
-  addDocumentNonBlocking,
 } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
@@ -174,8 +173,7 @@ export function RegistrationForm() {
       if (user) {
         // Create federation doc with the user's UID as the doc ID.
         const federationRef = doc(firestore, 'federations', user.uid);
-        const federationData: Omit<Federation, 'id'> = {
-          representativeUid: user.uid,
+        const federationData: Omit<Federation, 'id' | 'representativeUid'> = {
           representativeName: data.representativeName,
           representativeEmail: data.representativeEmail,
           countryId: data.countryName,

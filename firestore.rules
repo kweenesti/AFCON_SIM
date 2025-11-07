@@ -71,19 +71,19 @@ service cloud.firestore {
     }
 
     /**
-     * @description Enforces user-ownership for federation data based on a `representativeUid` field.
+     * @description Enforces user-ownership for federation data based on the document ID matching the user's UID.
      * @path /federations/{federationId}
      * @allow (get) - Anyone can read individual federation data.
      * @allow (list) - List is for admins only.
-     * @allow (create) - An authenticated user can create a federation if their UID matches the `representativeUid` in the new document.
-     * @allow (update, delete) - The user whose UID matches the `representativeUid` can update or delete the document.
-     * @principle Enforces document ownership for writes using an internal UID field, while allowing public reads of individual documents.
+     * @allow (create) - An authenticated user can create a federation if their UID matches the document ID.
+     * @allow (update, delete) - The user whose UID matches the document ID can update or delete it.
+     * @principle Enforces document ownership for writes using the document ID, while allowing public reads of individual documents.
      */
     match /federations/{federationId} {
       allow get: if true;
       allow list: if isAdmin();
-      allow create: if request.auth != null && request.resource.data.representativeUid == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.representativeUid == request.auth.uid;
+      allow create: if request.auth != null && request.auth.uid == federationId;
+      allow update, delete: if request.auth != null && request.auth.uid == federationId;
     }
 
     /**
@@ -96,14 +96,14 @@ service cloud.firestore {
      * @principle Enforces hierarchical ownership and validates relational integrity.
      */
     match /federations/{federationId}/players/{playerId} {
-       function isFederationOwner() {
-        return get(/databases/$(database)/documents/federations/$(federationId)).data.representativeUid == request.auth.uid;
+       function isFederationOwner(federationId) {
+        return request.auth != null && request.auth.uid == federationId;
       }
       
-      allow list, get: if isFederationOwner() || isAdmin();
-      allow create: if isFederationOwner() && request.resource.data.federationId == federationId;
-      allow update: if isFederationOwner() && request.resource.data.federationId == resource.data.federationId;
-      allow delete: if isFederationOwner();
+      allow list, get: if isFederationOwner(federationId) || isAdmin();
+      allow create: if isFederationOwner(federationId) && request.resource.data.federationId == federationId;
+      allow update: if isFederationOwner(federationId) && request.resource.data.federationId == resource.data.federationId;
+      allow delete: if isFederationOwner(federationId);
     }
 
     /**
