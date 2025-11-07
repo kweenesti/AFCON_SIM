@@ -7,6 +7,7 @@ import type { Federation, Match, Player, Team, Tournament } from '@/lib/types';
 import { simulateMatch } from '@/lib/simulate-match';
 import { getAuth } from 'firebase-admin/auth';
 import { generateMatchCommentary } from '@/ai/flows/generate-match-commentary';
+import { sendMatchResultEmail } from '@/lib/email';
 
 
 export async function grantAdminRole(prevState: any, formData: FormData) {
@@ -57,18 +58,31 @@ export async function simulateMatchAction(matchId: string, homeTeamId: string, a
         const result = simulateMatch(homeTeam, awayTeam);
 
         const matchRef = doc(firestore, 'matches', matchId);
-        await updateDoc(matchRef, {
+        const updatedMatchData = {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
             winnerId: result.winnerId,
             played: true,
-            playedType: 'simulated',
+            playedType: 'simulated' as const,
             goals: result.goals,
-        });
+        };
+        await updateDoc(matchRef, updatedMatchData);
+        
+        const fullMatchData: Match = {
+            id: matchId,
+            homeTeamId,
+            awayTeamId,
+            homeTeamName: homeTeam.countryName,
+            awayTeamName: awayTeam.countryName,
+            tournamentId: '', 
+            stage: 'quarter-finals',
+            played: true,
+            createdAt: serverTimestamp(),
+            ...updatedMatchData
+        };
 
-        // Simulate sending emails
-        console.log(`[EMAIL SIM] Match result notification sent to ${homeTeam.representativeEmail} for match ${matchId}.`);
-        console.log(`[EMAIL SIM] Match result notification sent to ${awayTeam.representativeEmail} for match ${matchId}.`);
+        await sendMatchResultEmail({ recipientEmail: homeTeam.representativeEmail, match: fullMatchData });
+        await sendMatchResultEmail({ recipientEmail: awayTeam.representativeEmail, match: fullMatchData });
 
         return { success: true, message: `Match ${matchId} simulated.`, winnerId: result.winnerId };
     } catch (error: any) {
@@ -85,7 +99,6 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
         const homeTeam = await getTeamData(firestore, homeTeamId);
         const awayTeam = await getTeamData(firestore, awayTeamId);
 
-        // Call the AI to generate commentary and result
         const result = await generateMatchCommentary({ homeTeam, awayTeam });
         
         if (!result) {
@@ -93,19 +106,32 @@ export async function playMatchAction(matchId: string, homeTeamId: string, awayT
         }
 
         const matchRef = doc(firestore, 'matches', matchId);
-        await updateDoc(matchRef, {
+        const updatedMatchData = {
             homeScore: result.homeScore,
             awayScore: result.awayScore,
             winnerId: result.winnerId,
             played: true,
-            playedType: 'played',
+            playedType: 'played' as const,
             goals: result.goals,
             commentary: result.commentary,
-        });
+        };
+        await updateDoc(matchRef, updatedMatchData);
         
-        // Simulate sending emails
-        console.log(`[EMAIL SIM] Match result and commentary notification sent to ${homeTeam.representativeEmail} for match ${matchId}.`);
-        console.log(`[EMAIL SIM] Match result and commentary notification sent to ${awayTeam.representativeEmail} for match ${matchId}.`);
+        const fullMatchData: Match = {
+            id: matchId,
+            homeTeamId,
+            awayTeamId,
+            homeTeamName: homeTeam.countryName,
+            awayTeamName: awayTeam.countryName,
+            tournamentId: '',
+            stage: 'quarter-finals',
+            played: true,
+            createdAt: serverTimestamp(),
+            ...updatedMatchData
+        };
+
+        await sendMatchResultEmail({ recipientEmail: homeTeam.representativeEmail, match: fullMatchData });
+        await sendMatchResultEmail({ recipientEmail: awayTeam.representativeEmail, match: fullMatchData });
 
         return { success: true, message: `Match ${matchId} played with commentary.` };
     } catch (error: any) {
@@ -120,7 +146,6 @@ export async function restartTournamentAction(tournamentId: string | undefined):
         const firestore = getFirestore(adminApp);
         const batch = writeBatch(firestore);
 
-        // 1. Delete all matches for the tournament
         if (tournamentId) {
             const matchesQuery = query(collection(firestore, 'matches'), where('tournamentId', '==', tournamentId));
             const matchesSnapshot = await getDocs(matchesQuery);
@@ -129,8 +154,6 @@ export async function restartTournamentAction(tournamentId: string | undefined):
             });
         }
         
-
-        // 2. Delete the tournament document itself
         if (tournamentId) {
              const tournamentRef = doc(firestore, 'tournaments', tournamentId);
              batch.delete(tournamentRef);
