@@ -54,11 +54,16 @@ export default function TournamentPage() {
     const { data: tournaments, isLoading: isTournamentLoading } = useCollection<Tournament>(latestTournamentQuery);
     const tournament = tournaments?.[0];
   
-    const matchesQuery = useMemoFirebase(
-      () => (tournament && firestore ? query(collection(firestore, 'matches'), where('tournamentId', '==', tournament.id), orderBy('createdAt', 'asc')) : null),
+    const allMatchesQuery = useMemoFirebase(
+      () => (tournament && firestore ? query(collection(firestore, 'matches'), orderBy('createdAt', 'asc')) : null),
       [firestore, tournament]
     );
-    const { data: matches, isLoading: areMatchesLoading } = useCollection<Match>(matchesQuery);
+    const { data: allMatches, isLoading: areMatchesLoading } = useCollection<Match>(allMatchesQuery);
+
+    const matches = useMemo(() => {
+        if (!allMatches || !tournament) return [];
+        return allMatches.filter(m => m.tournamentId === tournament.id);
+    }, [allMatches, tournament]);
 
     const isLoading = isTournamentLoading || areMatchesLoading;
 

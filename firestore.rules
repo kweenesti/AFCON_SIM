@@ -5,8 +5,6 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- Helper Functions ---
-    // These functions are now at the top level for global scope.
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -14,9 +12,7 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    // The 'get' operation in this function requires that the user has
-    // read access to their own document in the 'users' collection.
+    
     function isAdmin() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
@@ -31,7 +27,6 @@ service cloud.firestore {
 
     // Any authenticated user can read their own profile.
     // Only the owner can write to their own profile.
-    // The `allow read` is critical for the isAdmin() function to work.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId);
@@ -60,7 +55,6 @@ service cloud.firestore {
     }
 
     // Matches are public to view. Only admins can manage them.
-    // This rule is now simple and will not cause permission errors for reads.
     match /matches/{matchId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
