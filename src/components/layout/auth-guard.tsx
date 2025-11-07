@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
@@ -32,6 +33,7 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
     const isPublicPage =
       pathname === '/' ||
       pathname.startsWith('/tournament') ||
+      pathname.startsWith('/matches') ||
       pathname.startsWith('/match');
 
     if (!user) {
@@ -50,7 +52,7 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (isAdmin && !(pathname.startsWith('/admin') || pathname.startsWith('/schedule') || pathname.startsWith('/matches') || pathname.startsWith('/tournament'))) {
+      if (isAdmin && !(pathname.startsWith('/admin') || pathname.startsWith('/schedule') || pathname.startsWith('/matches') || pathname.startsWith('/tournament') || pathname.startsWith('/match'))) {
          router.replace('/admin');
          return;
       }
@@ -68,6 +70,7 @@ function AuthGuardContent({ children }: { children: ReactNode }) {
   const isPublicRoute =
     pathname === '/' ||
     pathname.startsWith('/tournament') ||
+    pathname.startsWith('/matches') ||
     pathname.startsWith('/match');
 
   if (!user && isPublicRoute) {
