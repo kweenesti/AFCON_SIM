@@ -22,8 +22,8 @@ export const useUser = (): UserHookResult => {
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(
-    () => (authUser && firestore ? doc(firestore, 'users', authUser.uid) : null),
-    [firestore, authUser]
+    () => (authUser?.uid && firestore ? doc(firestore, 'users', authUser.uid) : null),
+    [firestore, authUser?.uid]
   );
   
   const {
@@ -35,18 +35,24 @@ export const useUser = (): UserHookResult => {
   const [combinedUser, setCombinedUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading || (authUser && isProfileLoading)) {
-      return; // Wait until both auth and profile are done loading
+    if (isAuthLoading) {
+      return; 
+    }
+    
+    if (!authUser) {
+      setCombinedUser(null);
+      return;
     }
 
-    if (authUser) {
-      setCombinedUser({
+    if (isProfileLoading) {
+        return;
+    }
+
+    setCombinedUser({
         ...authUser,
         profile: userProfile || undefined,
-      });
-    } else {
-      setCombinedUser(null);
-    }
+    });
+
   }, [authUser, userProfile, isAuthLoading, isProfileLoading]);
 
   const isLoading = isAuthLoading || (!!authUser && isProfileLoading);

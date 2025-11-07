@@ -4,14 +4,12 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  FilePlus,
   Home,
   LogOut,
   Swords,
   UserCog,
   CalendarDays,
   Trophy,
-  LogIn,
 } from 'lucide-react';
 
 import {
@@ -28,7 +26,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '../icons/logo';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 
@@ -43,7 +41,7 @@ function AppShellSkeleton() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
@@ -55,37 +53,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const handleLogin = () => {
-    router.push('/login');
-  };
-
   useEffect(() => {
-    // If auth is loading, do nothing.
     if (isUserLoading) return;
 
-    // If there is no user, redirect them to the login page, unless they are already on a public page.
+    const publicPages = ['/', '/login', '/register'];
+    const isPublicPage = publicPages.includes(pathname);
+
     if (!user) {
-      if (
-        pathname !== '/' &&
-        pathname !== '/login' &&
-        pathname !== '/register'
-      ) {
+      if (!isPublicPage) {
         router.replace('/login');
       }
       return;
     }
 
-    // If the user is logged in, handle role-based redirects.
-    if (user.profile?.role === 'admin' && !pathname.startsWith('/admin') && !pathname.startsWith('/schedule') && !pathname.startsWith('/matches') && !pathname.startsWith('/tournament')) {
-      router.replace('/admin');
-    } else if (user.profile?.role === 'federation' && (pathname.startsWith('/admin') || pathname.startsWith('/schedule'))) {
-      router.replace('/dashboard');
-    } else if (
-      pathname === '/' ||
-      pathname === '/login' ||
-      pathname === '/register'
-    ) {
-      // If a logged-in user is on a public page, redirect them to their dashboard.
+    if (user.profile?.role === 'admin') {
+      if (
+        !pathname.startsWith('/admin') &&
+        !pathname.startsWith('/schedule') &&
+        !pathname.startsWith('/matches') &&
+        !pathname.startsWith('/tournament')
+      ) {
+        router.replace('/admin');
+      }
+    } else if (user.profile?.role === 'federation') {
+      if (pathname.startsWith('/admin') || pathname.startsWith('/schedule')) {
+        router.replace('/dashboard');
+      }
+    }
+
+    if (isPublicPage) {
       if (user.profile?.role === 'admin') {
         router.replace('/admin');
       } else {
@@ -94,12 +90,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, pathname, router]);
 
-
   if (isUserLoading || !user) {
     return <AppShellSkeleton />;
   }
 
-  const isRegistered = !!user;
   const isAdmin = user?.profile?.role === 'admin';
 
   let navItems = [];
@@ -111,8 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       { href: '/matches', label: 'Matches', icon: Swords },
       { href: '/tournament', label: 'Tournament', icon: Trophy },
     ];
-  } else if (isRegistered) {
-    // Regular federation user
+  } else {
     navItems = [
       { href: '/dashboard', label: 'Dashboard', icon: Home },
       { href: '/matches', label: 'Matches', icon: Swords },
@@ -144,16 +137,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          {isRegistered ? (
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} tooltip="Sign Out">
-                  <LogOut />
-                  <span>Sign Out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          ) : null }
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleLogout} tooltip="Sign Out">
+                <LogOut />
+                <span>Sign Out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -165,4 +156,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const { areServicesAvailable } = useFirebase();
+
+  if (!areServicesAvailable) {
+     return <AppShellSkeleton />;
+  }
+
+  return <AppShellContent>{children}</AppShellContent>;
 }
