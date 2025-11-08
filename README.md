@@ -1,8 +1,4 @@
-# Firebase Studio
 
-This is a NextJS starter in Firebase Studio.
-
-To get started, take a look at src/app/page.tsx.
 # African Nations League – Tournament Management System
 
 ## 1. Introduction
